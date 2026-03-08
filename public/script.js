@@ -65,12 +65,27 @@ function setupHoverImages() {
   const card = document.getElementById('hover-image-card');
   const image = document.getElementById('hover-image');
 
+  const preloadedSources = new Set();
+  document.querySelectorAll('.nav-item').forEach((item) => {
+    const src = item.dataset.image;
+    if (!src || preloadedSources.has(src)) {
+      return;
+    }
+
+    const preloadedImage = new Image();
+    preloadedImage.src = src;
+    preloadedSources.add(src);
+  });
+
   document.querySelectorAll('.nav-item').forEach((item) => {
     const heading = item.querySelector('.hover-heading');
     const src = item.dataset.image;
 
     const show = () => {
-      image.src = src;
+      if (src && image.src !== src) {
+        image.src = src;
+      }
+
       card.classList.add('active');
 
       const itemRect = item.getBoundingClientRect();
@@ -81,7 +96,6 @@ function setupHoverImages() {
 
     const hide = () => {
       card.classList.remove('active');
-      image.removeAttribute('src');
     };
 
     heading.addEventListener('mouseenter', show);

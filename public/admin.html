@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gratitude Admin</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="page admin-page">
+      <h1 class="title">GRATITUDE</h1>
+      <section id="admin-login" class="admin-card hidden">
+        <h2>Password</h2>
+        <form action="/admin/login" method="post" class="admin-form">
+          <input type="password" name="password" required autocomplete="current-password" />
+          <button type="submit">Login</button>
+        </form>
+        <p id="login-error" class="error-message hidden">Incorrect password</p>
+      </section>
+
+      <section id="admin-panel" class="admin-card hidden">
+        <div class="admin-header-row">
+          <h2 id="today-date"></h2>
+          <form action="/admin/logout" method="post">
+            <button type="submit">Logout</button>
+          </form>
+        </div>
+        <form action="/entry" method="post" class="admin-form">
+          <textarea name="text" rows="12" placeholder="+ Chloe being present with me&#10;+ Phone call with Wren"></textarea>
+          <button type="submit">Submit</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

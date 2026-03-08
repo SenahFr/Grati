@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gratitude Archive</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <h1 class="title">GRATITUDE</h1>
+
+      <section class="subhead-nav" aria-label="Prayer navigation">
+        <div class="nav-item" data-image="/images/prayercards-01.jpg">
+          <a href="#" class="hover-heading">Morning</a>
+        </div>
+        <div class="nav-item" data-image="/images/prayercards-03.jpg">
+          <a href="#" class="hover-heading">St. Francis</a>
+        </div>
+        <div class="nav-item" data-image="/images/prayercards-02.jpg">
+          <a href="#" class="hover-heading">Evening</a>
+        </div>
+      </section>
+
+      <div id="hover-image-card" aria-hidden="true">
+        <img id="hover-image" alt="Prayer card preview" />
+      </div>
+
+      <section class="grid-wrapper" aria-label="56 day gratitude archive">
+        <div class="grid" id="archive-grid"></div>
+        <div id="entry-panel" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+  </body>
+</html>

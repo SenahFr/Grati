@@ -5,17 +5,52 @@ const session = require('express-session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ENTRIES_PATH = path.join(__dirname, 'entries.json');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'gratitude';
 
+function resolveEntriesPath() {
+  const configuredDir = process.env.DATA_DIR;
+  const candidates = [
+    configuredDir ? path.join(configuredDir, 'entries.json') : null,
+    path.join(__dirname, 'entries.json'),
+    path.join('/tmp', 'entries.json'),
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      fs.mkdirSync(path.dirname(candidate), { recursive: true });
+      if (!fs.existsSync(candidate)) {
+        fs.writeFileSync(candidate, JSON.stringify({}, null, 2));
+      }
+      fs.accessSync(candidate, fs.constants.R_OK | fs.constants.W_OK);
+      return candidate;
+    } catch (_err) {
+      // Try the next location.
+    }
+  }
+
+  return null;
+}
+
+const ENTRIES_PATH = resolveEntriesPath();
+let inMemoryEntries = {};
+
 function ensureEntriesFile() {
+  if (!ENTRIES_PATH) {
+    return false;
+  }
+
   if (!fs.existsSync(ENTRIES_PATH)) {
     fs.writeFileSync(ENTRIES_PATH, JSON.stringify({}, null, 2));
   }
+
+  return true;
 }
 
 function loadEntries() {
-  ensureEntriesFile();
+  if (!ensureEntriesFile()) {
+    return inMemoryEntries;
+  }
+
   try {
     const raw = fs.readFileSync(ENTRIES_PATH, 'utf8');
     return JSON.parse(raw || '{}');
@@ -25,7 +60,18 @@ function loadEntries() {
 }
 
 function saveEntries(entries) {
-  fs.writeFileSync(ENTRIES_PATH, JSON.stringify(entries, null, 2));
+  if (!ENTRIES_PATH) {
+    inMemoryEntries = entries;
+    return true;
+  }
+
+  try {
+    fs.writeFileSync(ENTRIES_PATH, JSON.stringify(entries, null, 2));
+    return true;
+  } catch (_err) {
+    inMemoryEntries = entries;
+    return false;
+  }
 }
 
 function todayKey() {
@@ -50,6 +96,10 @@ app.use(
 app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, storage: ENTRIES_PATH ? 'file' : 'memory' });
+});
 
 app.get('/entries', (_req, res) => {
   res.json(loadEntries());
@@ -76,6 +126,7 @@ app.post('/entry', (req, res) => {
 
   const entries = loadEntries();
   entries[todayKey()] = items;
+
   saveEntries(entries);
 
   return res.redirect('/');
@@ -116,5 +167,6 @@ app.get('/', (_req, res) => {
 
 ensureEntriesFile();
 app.listen(PORT, () => {
-  console.log(`Gratitude archive running on http://localhost:${PORT}`);
+  const storageMode = ENTRIES_PATH ? ENTRIES_PATH : 'in-memory fallback';
+  console.log(`Gratitude archive running on http://localhost:${PORT} (storage: ${storageMode})`);
 });

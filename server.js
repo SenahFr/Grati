@@ -112,7 +112,7 @@ app.post('/entry', (req, res) => {
 
   const text = (req.body?.text || '').trim();
   if (!text) {
-    return res.redirect('/admin');
+    return res.redirect(303, '/admin');
   }
 
   const items = text
@@ -121,7 +121,7 @@ app.post('/entry', (req, res) => {
     .filter(Boolean);
 
   if (!items.length) {
-    return res.redirect('/admin');
+    return res.redirect(303, '/admin');
   }
 
   const entries = loadEntries();
@@ -129,7 +129,7 @@ app.post('/entry', (req, res) => {
 
   saveEntries(entries);
 
-  return res.redirect('/');
+  return res.redirect(303, '/');
 });
 
 app.get('/admin', (req, res) => {
@@ -149,15 +149,15 @@ app.post('/admin/login', (req, res) => {
 
   if (password === ADMIN_PASSWORD) {
     req.session.authenticated = true;
-    return res.redirect('/admin');
+    return res.redirect(303, '/admin');
   }
 
-  return res.redirect('/admin?error=1');
+  return res.redirect(303, '/admin?error=1');
 });
 
 app.post('/admin/logout', (req, res) => {
   req.session.destroy(() => {
-    res.redirect('/admin');
+    res.redirect(303, '/admin');
   });
 });
 

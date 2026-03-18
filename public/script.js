@@ -2,7 +2,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('archive-grid');
   const hoverCard = document.getElementById('hover-image-card');
   const hoverImg = document.getElementById('hover-image');
-  const entryPanel = document.getElementById('entry-panel');
+const entryPanel = document.getElementById('entry-panel');
 
   if (!grid || !hoverCard || !hoverImg || !entryPanel) {
     return;
@@ -15,7 +15,8 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     const itemRect = item.getBoundingClientRect();
-    const pageRect = hoverCard.offsetParent.getBoundingClientRect();
+    const page = hoverCard.closest('.page');
+    const pageRect = (page || document.body).getBoundingClientRect();
     const hoverCardWidth = hoverCard.offsetWidth || 280;
     const left = itemRect.left + itemRect.width / 2 - pageRect.left;
     const top = itemRect.bottom - pageRect.top + 18;

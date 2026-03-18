@@ -1,34 +1,47 @@
-import { supabase } from './lib/supabase.js';
-
 window.addEventListener('DOMContentLoaded', async () => {
+  if (!window.location.pathname.endsWith('/admin')) {
+    return;
+  }
+
   const loginEl = document.getElementById('admin-login');
   const panelEl = document.getElementById('admin-panel');
   const errorEl = document.getElementById('login-error');
   const todayDateEl = document.getElementById('today-date');
 
-  // Only activate admin logic if URL ends with /admin
-  if (!window.location.pathname.endsWith('/admin')) return;
+  if (!loginEl || !panelEl || !errorEl || !todayDateEl) {
+    return;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  if (searchParams.get('error') === '1') {
+    errorEl.classList.remove('hidden');
+  }
 
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const { data: userData } = await supabase.auth.getUser();
+    const response = await fetch('/admin/status', {
+      headers: {
+        Accept: 'application/json',
+      },
+    });
 
-    const isAdmin =
-      !!sessionData.session &&
-      userData.user?.email === 'smisnerdesign@gmail.com';
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
 
-    if (isAdmin) {
+    const { authenticated } = await response.json();
+
+    if (authenticated) {
       panelEl.classList.remove('hidden');
       loginEl.classList.add('hidden');
       todayDateEl.textContent = new Date().toDateString();
-    } else {
-      loginEl.classList.remove('hidden');
+      return;
     }
 
-    // Optional: listen to auth state changes
-    supabase.auth.onAuthStateChange(() => location.reload());
-  } catch (err) {
-    console.error('Admin auth error:', err);
     loginEl.classList.remove('hidden');
+    panelEl.classList.add('hidden');
+  } catch (error) {
+    console.error('Admin status error:', error);
+    loginEl.classList.remove('hidden');
+    panelEl.classList.add('hidden');
   }
 });

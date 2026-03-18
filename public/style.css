@@ -69,24 +69,22 @@ a:focus-visible {
 
 #hover-image-card {
   position: absolute;
-  top: 180px;
-  left: 50%;
+  top: 0;
+  left: 0;
   width: min(280px, calc(100vw - 48px));
   transform: translateX(-50%);
-  background: var(--bg-yellow);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s ease;
   z-index: 30;
-  padding: 8px;
 }
 
 #hover-image-card img {
   width: 100%;
   display: block;
   height: auto;
+  border: none;
+  box-shadow: none;
 }
 
 #hover-image-card.active {
@@ -210,7 +208,7 @@ textarea {
 @media (max-width: 1024px) {
   .grid-wrapper {
     margin: 0 60px;
-  }
+ }
 
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -235,7 +233,4 @@ textarea {
     flex-wrap: wrap;
   }
 
-  #hover-image-card {
-    top: 210px;
-  }
 }

@@ -1,22 +1,46 @@
-import { supabase } from './lib/supabase.js';
-
 window.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('archive-grid');
   const hoverCard = document.getElementById('hover-image-card');
   const hoverImg = document.getElementById('hover-image');
+  const entryPanel = document.getElementById('entry-panel');
 
-  // --- Hover images ---
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('mouseenter', () => {
-      hoverImg.src = item.dataset.image;
-      hoverCard.style.display = 'block';
-    });
-    item.addEventListener('mouseleave', () => {
-      hoverCard.style.display = 'none';
-    });
+  if (!grid || !hoverCard || !hoverImg || !entryPanel) {
+    return;
+  }
+
+  function showHoverImage(item) {
+    const imagePath = item.dataset.image;
+    if (!imagePath) {
+      return;
+    }
+
+    const itemRect = item.getBoundingClientRect();
+    const pageRect = hoverCard.offsetParent.getBoundingClientRect();
+    const hoverCardWidth = hoverCard.offsetWidth || 280;
+    const left = itemRect.left + itemRect.width / 2 - pageRect.left;
+    const top = itemRect.bottom - pageRect.top + 18;
+    const minLeft = hoverCardWidth / 2 + 24;
+    const maxLeft = pageRect.width - hoverCardWidth / 2 - 24;
+
+    hoverImg.src = imagePath;
+    hoverCard.style.left = `${Math.min(Math.max(left, minLeft), maxLeft)}px`;
+    hoverCard.style.top = `${top}px`;
+    hoverCard.style.display = 'block';
+    hoverCard.classList.add('active');
+  }
+
+  function hideHoverImage() {
+    hoverCard.classList.remove('active');
+    hoverCard.style.display = 'none';
+  }
+
+  document.querySelectorAll('.nav-item').forEach((item) => {
+    item.addEventListener('mouseenter', () => showHoverImage(item));
+    item.addEventListener('focusin', () => showHoverImage(item));
+    item.addEventListener('mouseleave', hideHoverImage);
+    item.addEventListener('focusout', hideHoverImage);
   });
 
-  // --- Archive grid ---
   function formatStorageKey(date) {
     return date.toISOString().split('T')[0];
   }
@@ -26,61 +50,66 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function buildEntryList(items) {
-    const ul = document.createElement('ul');
-    items.forEach(i => {
-      const li = document.createElement('li');
-      li.textContent = i;
-      ul.appendChild(li);
+    const list = document.createElement('ul');
+
+    items.forEach((item) => {
+      const listItem = document.createElement('li');
+      listItem.textContent = item;
+      list.appendChild(listItem);
     });
-    return ul;
+
+    return list;
   }
 
-  function placeEntryPanel(cell, content) {
-    const panel = document.getElementById('entry-panel');
-    panel.innerHTML = '';
-    panel.appendChild(content);
+  function placeEntryPanel(content) {
+    entryPanel.innerHTML = '';
+    entryPanel.appendChild(content);
+    entryPanel.classList.add('active');
   }
 
   async function renderArchive() {
     try {
-      const { data, error } = await supabase.from('entries').select('*');
-      if (error) throw error;
-
-      const entries = {};
-      data.forEach(entry => {
-        const key = formatStorageKey(new Date(entry.created_at));
-        if (!entries[key]) entries[key] = [];
-        entries[key].push(entry.content);
+      const response = await fetch('/entries', {
+        headers: {
+          Accept: 'application/json',
+        },
       });
 
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const entries = await response.json();
       const today = new Date();
-      for (let i = 0; i < 56; i++) {
+
+      for (let i = 0; i < 56; i += 1) {
         const date = new Date(today);
         date.setDate(today.getDate() - i);
+
         const key = formatStorageKey(date);
         const items = entries[key];
         const display = formatDisplayDate(date);
-
         const cell = document.createElement('div');
+
         cell.className = 'grid-cell';
 
         if (Array.isArray(items) && items.length > 0) {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'date-link';
-          btn.textContent = display;
-          btn.addEventListener('click', () =>
-            placeEntryPanel(cell, buildEntryList(items))
-          );
-          cell.appendChild(btn);
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'date-link';
+          button.textContent = display;
+          button.addEventListener('click', () => {
+            placeEntryPanel(buildEntryList(items));
+          });
+          cell.appendChild(button);
         } else {
           cell.classList.add('empty');
         }
 
         grid.appendChild(cell);
       }
-    } catch (err) {
-      console.error('Error loading entries:', err);
+    } catch (error) {
+      console.error('Error loading entries:', error);
     }
   }
 

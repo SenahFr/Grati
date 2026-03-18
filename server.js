@@ -166,7 +166,12 @@ app.get('/', (_req, res) => {
 });
 
 ensureEntriesFile();
-app.listen(PORT, () => {
-  const storageMode = ENTRIES_PATH ? ENTRIES_PATH : 'in-memory fallback';
-  console.log(`Gratitude archive running on http://localhost:${PORT} (storage: ${storageMode})`);
-});
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    const storageMode = ENTRIES_PATH ? ENTRIES_PATH : 'in-memory fallback';
+    console.log(`Gratitude archive running on http://localhost:${PORT} (storage: ${storageMode})`);
+  });
+}
+
+module.exports = app;

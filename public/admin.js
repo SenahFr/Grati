@@ -1,5 +1,13 @@
 window.addEventListener('DOMContentLoaded', async () => {
-  if (!window.location.pathname.endsWith('/admin')) {
+   const adminPaths = new Set(['/admin', '/admin/', '/admin/login']);
+
+  if (!adminPaths.has(window.location.pathname)) {
+    return;
+  }
+
+  if (window.location.pathname === '/admin/login') {
+    const target = `/admin${window.location.search}`;
+    window.location.replace(target);
     return;
   }
 

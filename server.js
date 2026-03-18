@@ -132,13 +132,14 @@ app.post('/entry', (req, res) => {
   return res.redirect(303, '/');
 });
 
-app.get('/admin', (req, res) => {
-  if (!req.session?.authenticated) {
-    return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-  }
-
+function sendAdminPage(res) {
   return res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
+}
+
+app.get('/admin', (_req, res) => sendAdminPage(res));
+app.get('/admin/', (_req, res) => sendAdminPage(res));
+app.get('/admin/login', (_req, res) => sendAdminPage(res));
+app.get('/admin/login/', (_req, res) => sendAdminPage(res));
 
 app.get('/admin/status', (req, res) => {
   res.json({ authenticated: Boolean(req.session?.authenticated) });

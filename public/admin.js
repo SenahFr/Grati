@@ -1,3 +1,4 @@
+import { supabase } from './lib/supabase';
 function formatLongDate(date) {
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -12,15 +13,21 @@ async function bootstrapAdmin() {
   const errorEl = document.getElementById('login-error');
   const todayDateEl = document.getElementById('today-date');
 
-  const statusResponse = await fetch('/admin/status');
-  const status = await statusResponse.json();
+  // Get session + user
+  const { data: sessionData } = await supabase.auth.getSession();
+  const { data: userData } = await supabase.auth.getUser();
+
+  // Single, correct admin check
+  const isAdmin =
+    !!sessionData.session &&
+    userData.user?.email === 'smisnerdesign@gmail.com';
 
   const params = new URLSearchParams(window.location.search);
   if (params.get('error') === '1') {
     errorEl.classList.remove('hidden');
   }
 
-  if (status.authenticated) {
+  if (isAdmin) {
     panelEl.classList.remove('hidden');
     todayDateEl.textContent = formatLongDate(new Date());
   } else {

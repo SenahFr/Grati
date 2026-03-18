@@ -1,5 +1,6 @@
 const grid = document.getElementById('archive-grid');
 const panel = document.getElementById('entry-panel');
+import { supabase } from './lib/supabase';
 
 function formatDisplayDate(date) {
   const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -31,10 +32,30 @@ function placeEntryPanel(cell, html) {
 }
 
 async function renderArchive() {
-  const response = await fetch('/entries');
-  const entries = await response.json();
+  const { data, error } = await supabase
+    .from('entries')
+    .select('*');
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const entries = {};
+
+  data.forEach(entry => {
+    const date = new Date(entry.created_at);
+    const key = formatStorageKey(date);
+
+    if (!entries[key]) {
+      entries[key] = [];
+    }
+
+    entries[key].push(entry.content);
+  });
 
   const today = new Date();
+
   for (let i = 0; i < 56; i += 1) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
@@ -51,7 +72,9 @@ async function renderArchive() {
       button.type = 'button';
       button.className = 'date-link';
       button.textContent = display;
-      button.addEventListener('click', () => placeEntryPanel(cell, buildEntryList(items)));
+      button.addEventListener('click', () =>
+        placeEntryPanel(cell, buildEntryList(items))
+      );
       cell.appendChild(button);
     } else {
       cell.classList.add('empty');

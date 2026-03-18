@@ -1,11 +1,4 @@
-import { supabase } from './lib/supabase';
-function formatLongDate(date) {
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
+import { supabase } from '/src/lib/supabase.js';
 
 async function bootstrapAdmin() {
   const loginEl = document.getElementById('admin-login');
@@ -13,26 +6,22 @@ async function bootstrapAdmin() {
   const errorEl = document.getElementById('login-error');
   const todayDateEl = document.getElementById('today-date');
 
-  // Get session + user
   const { data: sessionData } = await supabase.auth.getSession();
   const { data: userData } = await supabase.auth.getUser();
 
-  // Single, correct admin check
   const isAdmin =
     !!sessionData.session &&
     userData.user?.email === 'smisnerdesign@gmail.com';
 
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('error') === '1') {
-    errorEl.classList.remove('hidden');
-  }
-
   if (isAdmin) {
     panelEl.classList.remove('hidden');
-    todayDateEl.textContent = formatLongDate(new Date());
+    todayDateEl.textContent = new Date().toDateString();
   } else {
-    loginEl.classList.remove('hidden');
+    loginEl?.classList.remove('hidden');
   }
 }
 
 bootstrapAdmin();
+
+// Optional: reload page on auth state change
+supabase.auth.onAuthStateChange(() => location.reload());

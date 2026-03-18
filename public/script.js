@@ -1,40 +1,33 @@
-const grid = document.getElementById('archive-grid');
-const panel = document.getElementById('entry-panel');
-import { supabase } from './lib/supabase';
+import { supabase } from '/src/lib/supabase.js';
 
-function formatDisplayDate(date) {
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  const yyyy = date.getFullYear();
-  return `${mm}.${dd}.${yyyy}`;
-}
+const grid = document.getElementById('archive-grid');
 
 function formatStorageKey(date) {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+  return date.toISOString().split('T')[0]; // "YYYY-MM-DD"
+}
+
+function formatDisplayDate(date) {
+  return date.toDateString();
 }
 
 function buildEntryList(items) {
-  return `<ul>${items.map((item) => `<li>+ ${item}</li>`).join('')}</ul>`;
+  const ul = document.createElement('ul');
+  items.forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = item;
+    ul.appendChild(li);
+  });
+  return ul;
 }
 
-function placeEntryPanel(cell, html) {
-  panel.innerHTML = html;
-  panel.classList.add('active');
-
-  const wrapperRect = grid.parentElement.getBoundingClientRect();
-  const cellRect = cell.getBoundingClientRect();
-
-  panel.style.left = `${cellRect.left - wrapperRect.left}px`;
-  panel.style.top = `${cellRect.bottom - wrapperRect.top + 8}px`;
+function placeEntryPanel(cell, content) {
+  const panel = document.getElementById('entry-panel');
+  panel.innerHTML = '';
+  panel.appendChild(content);
 }
 
 async function renderArchive() {
-  const { data, error } = await supabase
-    .from('entries')
-    .select('*');
+  const { data, error } = await supabase.from('entries').select('*');
 
   if (error) {
     console.error(error);
@@ -42,24 +35,17 @@ async function renderArchive() {
   }
 
   const entries = {};
-
   data.forEach(entry => {
     const date = new Date(entry.created_at);
     const key = formatStorageKey(date);
-
-    if (!entries[key]) {
-      entries[key] = [];
-    }
-
+    if (!entries[key]) entries[key] = [];
     entries[key].push(entry.content);
   });
 
   const today = new Date();
-
-  for (let i = 0; i < 56; i += 1) {
+  for (let i = 0; i < 56; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() - i);
-
     const key = formatStorageKey(date);
     const display = formatDisplayDate(date);
     const items = entries[key];
@@ -84,76 +70,17 @@ async function renderArchive() {
   }
 }
 
-function setupHoverImages() {
-  const card = document.getElementById('hover-image-card');
-  const image = document.getElementById('hover-image');
-  const page = document.querySelector('.page');
-
-  const preloadPromises = new Map();
-  const preloadImage = (src) => {
-    if (!src) {
-      return Promise.resolve();
-    }
-
-    if (preloadPromises.has(src)) {
-      return preloadPromises.get(src);
-    }
-
-    const promise = new Promise((resolve) => {
-      const preloadedImage = new Image();
-      preloadedImage.onload = () => resolve(true);
-      preloadedImage.onerror = () => resolve(false);
-      preloadedImage.src = src;
-    });
-
-    preloadPromises.set(src, promise);
-    return promise;
-  };
-
-  const navItems = Array.from(document.querySelectorAll('.nav-item'));
-  navItems.forEach((item) => preloadImage(item.dataset.image));
-
-  navItems.forEach((item) => {
-    const heading = item.querySelector('.hover-heading');
-    const src = item.dataset.image;
-    let isActiveHover = false;
-
-    const positionCard = () => {
-      const itemRect = item.getBoundingClientRect();
-      const pageRect = page.getBoundingClientRect();
-      const left = itemRect.left + itemRect.width / 2 - card.offsetWidth / 2 - pageRect.left;
-      card.style.left = `${Math.max(0, left)}px`;
-    };
-
-    const show = async () => {
-      isActiveHover = true;
-      await preloadImage(src);
-
-      if (!isActiveHover) {
-        return;
-      }
-
-      if (image.getAttribute('src') !== src) {
-        image.setAttribute('src', src);
-      }
-
-      positionCard();
-      card.classList.add('active');
-    };
-
-    const hide = () => {
-      isActiveHover = false;
-      card.classList.remove('active');
-    };
-
-    item.addEventListener('mouseenter', show);
-    item.addEventListener('mouseleave', hide);
-    heading.addEventListener('focus', show);
-    heading.addEventListener('blur', hide);
-    heading.addEventListener('click', (event) => event.preventDefault());
-  });
-}
-
 renderArchive();
-setupHoverImages();
-window.addEventListener('resize', () => panel.classList.remove('active'));
+
+// Hover images
+document.querySelectorAll('.nav-item').forEach(item => {
+  const imgEl = document.getElementById('hover-image');
+  const hoverCard = document.getElementById('hover-image-card');
+  item.addEventListener('mouseenter', () => {
+    imgEl.src = item.dataset.image;
+    hoverCard.style.display = 'block';
+  });
+  item.addEventListener('mouseleave', () => {
+    hoverCard.style.display = 'none';
+  });
+});

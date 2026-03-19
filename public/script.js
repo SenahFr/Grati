@@ -116,4 +116,3 @@ const entryPanel = document.getElementById('entry-panel');
 
   renderArchive();
 });
-<script type="module" src="/script.js"></script>

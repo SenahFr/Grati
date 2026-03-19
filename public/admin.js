@@ -1,5 +1,7 @@
+import { supabase } from './lib/supabase.js';
+
 window.addEventListener('DOMContentLoaded', async () => {
-   const adminPaths = new Set(['/admin', '/admin/']);
+  const adminPaths = new Set(['/admin', '/admin/']);
 
   if (!adminPaths.has(window.location.pathname)) {
     return;
@@ -20,17 +22,12 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    const response = await fetch('/admin/status', {
-      headers: {
-        Accept: 'application/json',
-      },
-    });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const { data: userData } = await supabase.auth.getUser();
 
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-
-    const { authenticated } = await response.json();
+    const authenticated =
+      !!sessionData.session &&
+      userData.user?.email === 'smisnerdesign@gmail.com';
 
     if (authenticated) {
       panelEl.classList.remove('hidden');
@@ -42,7 +39,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     loginEl.classList.remove('hidden');
     panelEl.classList.add('hidden');
   } catch (error) {
-    console.error('Admin status error:', error);
+    console.error('Admin auth error:', error);
     loginEl.classList.remove('hidden');
     panelEl.classList.add('hidden');
   }

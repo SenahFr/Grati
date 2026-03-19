@@ -2,9 +2,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('archive-grid');
   const hoverCard = document.getElementById('hover-image-card');
   const hoverImg = document.getElementById('hover-image');
-const entryPanel = document.getElementById('entry-panel');
 
-  if (!grid || !hoverCard || !hoverImg || !entryPanel) {
+  if (!grid || !hoverCard || !hoverImg) {
     return;
   }
 
@@ -52,6 +51,7 @@ const entryPanel = document.getElementById('entry-panel');
 
   function buildEntryList(items) {
     const list = document.createElement('ul');
+    list.className = 'entry-list';
 
     items.forEach((item) => {
       const listItem = document.createElement('li');
@@ -62,10 +62,21 @@ const entryPanel = document.getElementById('entry-panel');
     return list;
   }
 
-  function placeEntryPanel(content) {
-    entryPanel.innerHTML = '';
-    entryPanel.appendChild(content);
-    entryPanel.classList.add('active');
+  function createEntryPanel(items) {
+    const panel = document.createElement('div');
+    panel.className = 'entry-panel';
+    panel.hidden = true;
+    panel.appendChild(buildEntryList(items));
+    return panel;
+  }
+
+  function toggleEntryPanel(button, panel) {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    const nextState = !isExpanded;
+
+    button.setAttribute('aria-expanded', String(nextState));
+    panel.hidden = !nextState;
+    panel.classList.toggle('active', nextState);
   }
 
   async function renderArchive() {
@@ -96,13 +107,22 @@ const entryPanel = document.getElementById('entry-panel');
 
         if (Array.isArray(items) && items.length > 0) {
           const button = document.createElement('button');
+const panelId = `entry-panel-${key}`;
+          const panel = createEntryPanel(items);
+
           button.type = 'button';
           button.className = 'date-link';
           button.textContent = display;
+          button.setAttribute('aria-expanded', 'false');
+          button.setAttribute('aria-controls', panelId);
+
+          panel.id = panelId;
+
           button.addEventListener('click', () => {
-            placeEntryPanel(buildEntryList(items));
+            toggleEntryPanel(button, panel);
           });
-          cell.appendChild(button);
+
+          cell.append(button, panel);
         } else {
           cell.classList.add('empty');
         }

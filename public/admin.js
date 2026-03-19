@@ -1,5 +1,3 @@
-import { supabase } from './lib/supabase.js';
-
 window.addEventListener('DOMContentLoaded', async () => {
   const adminPaths = new Set(['/admin', '/admin/']);
 
@@ -22,12 +20,19 @@ window.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const { data: userData } = await supabase.auth.getUser();
+    const response = await fetch('/admin/status', {
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
 
-    const authenticated =
-      !!sessionData.session &&
-      userData.user?.email === 'smisnerdesign@gmail.com';
+    if (!response.ok) {
+      throw new Error(`Admin status request failed with ${response.status}`);
+    }
+
+    const status = await response.json();
+    const authenticated = Boolean(status?.authenticated);
 
     if (authenticated) {
       panelEl.classList.remove('hidden');

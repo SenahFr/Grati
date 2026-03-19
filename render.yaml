@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: gratitude-archive
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: gratitude-data
+      mountPath: /var/data
+      sizeGB: 1

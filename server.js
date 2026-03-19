@@ -143,13 +143,9 @@ app.get('/admin/status', (req, res) => {
   res.json({ authenticated: Boolean(req.session?.authenticated) });
 });
 
-app.get('/admin/login', (_req, res) => {
-  res.redirect(303, '/admin');
-});
+app.get('/admin/login', (_req, res) => sendAdminPage(res));
 
-app.get('/admin/login/', (_req, res) => {
-  res.redirect(303, '/admin');
-});
+app.get('/admin/login/', (_req, res) => sendAdminPage(res));
 
 app.post('/admin/login', (req, res) => {
   const password = req.body?.password || '';

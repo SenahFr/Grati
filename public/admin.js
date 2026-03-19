@@ -1,5 +1,5 @@
 window.addEventListener('DOMContentLoaded', async () => {
-  const adminPaths = new Set(['/admin', '/admin/']);
+  const adminPaths = new Set(['/admin', '/admin/', '/admin/login', '/admin/login/']);
 
   if (!adminPaths.has(window.location.pathname)) {
     return;

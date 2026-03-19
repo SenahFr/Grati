@@ -138,8 +138,6 @@ function sendAdminPage(res) {
 
 app.get('/admin', (_req, res) => sendAdminPage(res));
 app.get('/admin/', (_req, res) => sendAdminPage(res));
-app.get('/admin/login', (_req, res) => sendAdminPage(res));
-app.get('/admin/login/', (_req, res) => sendAdminPage(res));
 
 app.get('/admin/status', (req, res) => {
   res.json({ authenticated: Boolean(req.session?.authenticated) });
@@ -149,16 +147,26 @@ app.get('/admin/login', (_req, res) => {
   res.redirect(303, '/admin');
 });
 
+app.get('/admin/login/', (_req, res) => {
+  res.redirect(303, '/admin');
+});
 
 app.post('/admin/login', (req, res) => {
   const password = req.body?.password || '';
 
-  if (password === ADMIN_PASSWORD) {
-    req.session.authenticated = true;
-    return res.redirect(303, '/admin');
+  if (password !== ADMIN_PASSWORD) {
+    return res.redirect(303, '/admin?error=1');
   }
 
-  return res.redirect(303, '/admin?error=1');
+  req.session.authenticated = true;
+  return req.session.save((error) => {
+    if (error) {
+      console.error('Admin login session save error:', error);
+      return res.redirect(303, '/admin?error=1');
+    }
+
+    return res.redirect(303, '/admin');
+  });
 });
 
 app.post('/admin/logout', (req, res) => {

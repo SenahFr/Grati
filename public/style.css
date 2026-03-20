@@ -1,6 +1,24 @@
 @font-face {
-  font-family: 'FlorDeRuina';
+  font-family: 'FlorDeRuina Flor';
   src: url('/fonts/FlorDeRuina-Flor.woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FlorDeRuina Ruina';
+  src: url('/fonts/FlorDeRuina-Ruina.woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FlorDeRuina Germen';
+  src: url('/fonts/FlorDeRuina-Germen.woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FlorDeRuina Semilla';
+  src: url('/fonts/FlorDeRuina-Semilla.woff2');
   font-display: swap;
 }
 
@@ -19,7 +37,7 @@ body {
   min-height: 100vh;
   background: var(--bg-yellow);
   color: var(--primary-green);
-  font-family: 'FlorDeRuina', serif;
+  font-family: 'FlorDeRuina Germen', serif;
 }
 
 .page {
@@ -35,6 +53,7 @@ body {
   font-size: clamp(3.6rem, 8vw, 7rem);
   letter-spacing: 0.05em;
   line-height: 0.9;
+  font-family: 'FlorDeRuina Ruina', serif;
 }
 
 .subhead-nav {
@@ -55,6 +74,14 @@ a {
   padding: 0;
   cursor: pointer;
   font-family: inherit;
+}
+
+.hover-heading {
+  font-family: 'FlorDeRuina Semilla', serif;
+}
+
+.date-link {
+  font-family: 'FlorDeRuina Ruina', serif;
 }
 
 .hover-heading:hover,
@@ -121,9 +148,11 @@ text-align: left;
 }
 
 .entry-panel {
-  width: min(100%, 260px);
+  width: max-content;
+  max-width: calc(100vw - 48px);
+  overflow-x: auto;
   background: rgba(249, 219, 109, 0.95);
-  padding: 16px;
+  padding: 16px 20px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.12);
   opacity: 0;
@@ -141,12 +170,17 @@ text-align: left;
 }
 
 .entry-list {
-  list-style: none;
   margin: 0;
-  padding: 0;
+  padding-left: 1.4em;
+  list-style: disc;
   color: var(--accent-blue);
+  font-family: 'FlorDeRuina Germen', serif;
   font-size: 1.7rem;
   line-height: 1.3;
+}
+
+.entry-list li {
+  white-space: nowrap;
 }
 
 .admin-page {

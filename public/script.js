@@ -2,6 +2,8 @@ window.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('archive-grid');
   const hoverCard = document.getElementById('hover-image-card');
   const hoverImg = document.getElementById('hover-image');
+  const archiveTimeZone = 'America/New_York';
+  const archiveLength = 56;
 
   if (!grid || !hoverCard || !hoverImg) {
     return;
@@ -41,12 +43,59 @@ window.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('focusout', hideHoverImage);
   });
 
-  function formatStorageKey(date) {
-    return date.toISOString().split('T')[0];
+function getDatePartsInTimeZone(date, timeZone) {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    return formatter
+      .formatToParts(date)
+      .filter((part) => part.type !== 'literal')
+      .reduce((parts, part) => ({ ...parts, [part.type]: part.value }), {});
   }
 
-  function formatDisplayDate(date) {
-    return date.toDateString();
+  function getStorageKeyForTimeZone(date, timeZone) {
+    const { year, month, day } = getDatePartsInTimeZone(date, timeZone);
+    return `${year}-${month}-${day}`;
+  }
+
+  function shiftStorageKey(key, offsetDays) {
+    const [year, month, day] = key.split('-').map(Number);
+    const shiftedDate = new Date(Date.UTC(year, month - 1, day, 12));
+
+    shiftedDate.setUTCDate(shiftedDate.getUTCDate() + offsetDays);
+
+    return shiftedDate.toISOString().slice(0, 10);
+  }
+
+  function formatDisplayDateFromKey(key) {
+    const [year, month, day] = key.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day, 12));
+
+    return new Intl.DateTimeFormat('en-US', {
+      timeZone: 'UTC',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
+  }
+
+  function hasEntry(items) {
+    return Array.isArray(items) && items.length > 0;
+  }
+
+  function getLatestVisibleKey(entries) {
+    const currentEasternKey = getStorageKeyForTimeZone(new Date(), archiveTimeZone);
+
+    if (hasEntry(entries[currentEasternKey])) {
+      return currentEasternKey;
+    }
+
+    return shiftStorageKey(currentEasternKey, -1);
   }
 
   function buildEntryList(items) {
@@ -70,13 +119,56 @@ window.addEventListener('DOMContentLoaded', () => {
     return panel;
   }
 
+  function closePanels(exceptButton, exceptPanel) {
+    grid.querySelectorAll('.date-link[aria-expanded="true"]').forEach((button) => {
+      if (button !== exceptButton) {
+        button.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    grid.querySelectorAll('.entry-panel.active').forEach((panel) => {
+      if (panel !== exceptPanel) {
+        panel.hidden = true;
+        panel.classList.remove('active');
+      }
+    });
+  }
+
   function toggleEntryPanel(button, panel) {
     const isExpanded = button.getAttribute('aria-expanded') === 'true';
     const nextState = !isExpanded;
 
+    closePanels(nextState ? button : null, nextState ? panel : null);
     button.setAttribute('aria-expanded', String(nextState));
     panel.hidden = !nextState;
     panel.classList.toggle('active', nextState);
+  }
+
+  function createDateLabel(display, items, key) {
+    if (hasEntry(items)) {
+      const button = document.createElement('button');
+      const panelId = `entry-panel-${key}`;
+      const panel = createEntryPanel(items);
+
+      button.type = 'button';
+      button.className = 'date-link';
+      button.textContent = display;
+      button.setAttribute('aria-expanded', 'false');
+      button.setAttribute('aria-controls', panelId);
+
+      panel.id = panelId;
+
+      button.addEventListener('click', () => {
+        toggleEntryPanel(button, panel);
+      });
+
+      return [button, panel];
+    }
+
+    const dateLabel = document.createElement('span');
+    dateLabel.className = 'date-label';
+    dateLabel.textContent = display;
+    return [dateLabel];
   }
 
   async function renderArchive() {
@@ -92,38 +184,20 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       const entries = await response.json();
-      const today = new Date();
+      const latestVisibleKey = getLatestVisibleKey(entries);
 
-      for (let i = 0; i < 56; i += 1) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
+      grid.innerHTML = '';
 
-        const key = formatStorageKey(date);
+      for (let i = 0; i < archiveLength; i += 1) {
+        const key = shiftStorageKey(latestVisibleKey, -i);
         const items = entries[key];
-        const display = formatDisplayDate(date);
+        const display = formatDisplayDateFromKey(key);
         const cell = document.createElement('div');
 
         cell.className = 'grid-cell';
+        cell.append(...createDateLabel(display, items, key));
 
-        if (Array.isArray(items) && items.length > 0) {
-          const button = document.createElement('button');
-const panelId = `entry-panel-${key}`;
-          const panel = createEntryPanel(items);
-
-          button.type = 'button';
-          button.className = 'date-link';
-          button.textContent = display;
-          button.setAttribute('aria-expanded', 'false');
-          button.setAttribute('aria-controls', panelId);
-
-          panel.id = panelId;
-
-          button.addEventListener('click', () => {
-            toggleEntryPanel(button, panel);
-          });
-
-          cell.append(button, panel);
-        } else {
+        if (!hasEntry(items)) {
           cell.classList.add('empty');
         }
 
@@ -133,6 +207,12 @@ const panelId = `entry-panel-${key}`;
       console.error('Error loading entries:', error);
     }
   }
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.grid-cell')) {
+      closePanels();
+    }
+  });
 
   renderArchive();
 });

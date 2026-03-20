@@ -65,6 +65,7 @@ body {
 
 .hover-heading,
 .date-link,
+.date-label,
 a {
   color: var(--primary-green);
   text-decoration: underline;
@@ -80,7 +81,8 @@ a {
   font-family: 'FlorDeRuina Semilla', serif;
 }
 
-.date-link {
+.date-link,
+.date-label {
   font-family: 'FlorDeRuina Ruina', serif;
 }
 
@@ -127,29 +129,41 @@ a:focus-visible {
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 20px;
   align-items: start;
+   direction: rtl;
 }
 
 .grid-cell {
+  position: relative;
   min-height: 112px;
   padding-top: 8px;
-    display: flex;
+  display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
+  align-items: flex-end;
 }
 
 .grid-cell.empty {
   border: 1px solid transparent;
 }
 
-.date-link {
+.date-link,
+.date-label {
   font-size: clamp(1.2rem, 1.8vw, 2rem);
-text-align: left;
+  text-align: right;
+  display: inline-block;
+  width: 100%;
+}
+
+.date-label {
+  cursor: default;
 }
 
 .entry-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
   width: max-content;
-  max-width: calc(100vw - 48px);
+  max-width: min(460px, calc(100vw - 48px));
   overflow-x: auto;
   background: rgba(249, 219, 109, 0.95);
   padding: 16px 20px;
@@ -171,7 +185,7 @@ text-align: left;
 
 .entry-list {
   margin: 0;
-  padding-left: 1.4em;
+  padding-left: 0.4em;
   list-style: disc;
   color: var(--accent-blue);
   font-family: 'FlorDeRuina Germen', serif;
@@ -272,5 +286,8 @@ textarea {
   .subhead-nav {
     gap: 24px;
     flex-wrap: wrap;
+  }
+.entry-panel {
+    max-width: calc(100vw - 40px);
   }
 }

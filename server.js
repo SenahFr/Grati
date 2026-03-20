@@ -75,8 +75,18 @@ function saveEntries(entries) {
 }
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter
+    .formatToParts(new Date())
+    .filter((part) => part.type !== 'literal')
+    .reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
+
+  return `${parts.year}-${parts.month}-${parts.day}`;}
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());

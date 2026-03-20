@@ -1,7 +1,7 @@
 {
   "name": "gratitude-archive",
   "version": "1.0.0",
-  "description": "Minimal gratitude archive website",
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

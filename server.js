@@ -11,14 +11,38 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-await supabase
-  .from('entries')
-  .upsert([
-    {
-      date: todayKey(),
-      items: items
-    }
-  ], { onConflict: ['date'] });
+app.post('/entry', async (req, res) => {
+  if (!req.session?.authenticated) {
+    return res.status(401).send('Unauthorized');
+  }
+
+  const text = (req.body?.text || '').trim();
+
+  const items = text
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  if (!items.length) {
+    return res.redirect(303, '/admin');
+  }
+
+  const { error } = await supabase
+    .from('entries')
+    .upsert([
+      {
+        date: todayKey(),
+        items: items
+      }
+    ]);
+
+  if (error) {
+    console.error(error);
+    return res.status(500).send('Database error');
+  }
+
+  return res.redirect(303, '/');
+});
 
 function todayKey() {
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -54,7 +78,7 @@ app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, storage: ENTRIES_PATH ? 'file' : 'memory' });
+  res.json({ ok: true, storage: 'supabase' });
 });
 
 app.get('/entries', async (_req, res) => {
@@ -71,28 +95,6 @@ app.get('/entries', async (_req, res) => {
   });
 
   res.json(formatted);
-});
-
-app.post('/entry', (req, res) => {
-  if (!req.session?.authenticated) {
-    return res.status(401).send('Unauthorized');
-  }
-
-  const text = (req.body?.text || '').trim();
-  if (!text) {
-    return res.redirect(303, '/admin');
-  }
-
-  const items = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (!items.length) {
-    return res.redirect(303, '/admin');
-  }
-
-  return res.redirect(303, '/');
 });
 
 function sendAdminPage(res) {
@@ -140,7 +142,7 @@ app.get('/', (_req, res) => {
 
 if (require.main === module) {
   app.listen(PORT, () => {
-    const storageMode = ENTRIES_PATH ? ENTRIES_PATH : 'in-memory fallback';
+    const storageMode = 'supabase';
     console.log(`Gratitude archive running on http://localhost:${PORT} (storage: ${storageMode})`);
   });
 }

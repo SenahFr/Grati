@@ -1,78 +1,24 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const session = require('express-session');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'gratitude';
+const { createClient } = require('@supabase/supabase-js');
 
-function resolveEntriesPath() {
-  const configuredDir = process.env.DATA_DIR;
-  const candidates = [
-    configuredDir ? path.join(configuredDir, 'entries.json') : null,
-    path.join(__dirname, 'entries.json'),
-    path.join('/tmp', 'entries.json'),
-  ].filter(Boolean);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
-  for (const candidate of candidates) {
-    try {
-      fs.mkdirSync(path.dirname(candidate), { recursive: true });
-      if (!fs.existsSync(candidate)) {
-        fs.writeFileSync(candidate, JSON.stringify({}, null, 2));
-      }
-      fs.accessSync(candidate, fs.constants.R_OK | fs.constants.W_OK);
-      return candidate;
-    } catch (_err) {
-      // Try the next location.
+await supabase
+  .from('entries')
+  .upsert([
+    {
+      date: todayKey(),
+      items: items
     }
-  }
-
-  return null;
-}
-
-const ENTRIES_PATH = resolveEntriesPath();
-let inMemoryEntries = {};
-
-function ensureEntriesFile() {
-  if (!ENTRIES_PATH) {
-    return false;
-  }
-
-  if (!fs.existsSync(ENTRIES_PATH)) {
-    fs.writeFileSync(ENTRIES_PATH, JSON.stringify({}, null, 2));
-  }
-
-  return true;
-}
-
-function loadEntries() {
-  if (!ensureEntriesFile()) {
-    return inMemoryEntries;
-  }
-
-  try {
-    const raw = fs.readFileSync(ENTRIES_PATH, 'utf8');
-    return JSON.parse(raw || '{}');
-  } catch (_err) {
-    return {};
-  }
-}
-
-function saveEntries(entries) {
-  if (!ENTRIES_PATH) {
-    inMemoryEntries = entries;
-    return true;
-  }
-
-  try {
-    fs.writeFileSync(ENTRIES_PATH, JSON.stringify(entries, null, 2));
-    return true;
-  } catch (_err) {
-    inMemoryEntries = entries;
-    return false;
-  }
-}
+  ], { onConflict: ['date'] });
 
 function todayKey() {
   const formatter = new Intl.DateTimeFormat('en-CA', {
@@ -111,8 +57,20 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, storage: ENTRIES_PATH ? 'file' : 'memory' });
 });
 
-app.get('/entries', (_req, res) => {
-  res.json(loadEntries());
+app.get('/entries', async (_req, res) => {
+  const { data, error } = await supabase
+    .from('entries')
+    .select('*');
+
+  if (error) return res.status(500).json({ error });
+
+  // convert to your current format: { "2026-03-20": ["..."] }
+  const formatted = {};
+  data.forEach(row => {
+    formatted[row.date] = row.items;
+  });
+
+  res.json(formatted);
 });
 
 app.post('/entry', (req, res) => {
@@ -133,11 +91,6 @@ app.post('/entry', (req, res) => {
   if (!items.length) {
     return res.redirect(303, '/admin');
   }
-
-  const entries = loadEntries();
-  entries[todayKey()] = items;
-
-  saveEntries(entries);
 
   return res.redirect(303, '/');
 });
@@ -184,8 +137,6 @@ app.post('/admin/logout', (req, res) => {
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
-
-ensureEntriesFile();
 
 if (require.main === module) {
   app.listen(PORT, () => {

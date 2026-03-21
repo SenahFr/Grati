@@ -80,31 +80,58 @@ app.post('/entry', async (req, res) => {
     return res.redirect(303, '/admin');
   }
 
-  const date = todayKey();
-  const { data: existingEntry, error: existingEntryError } = await supabase
+   const date = todayKey();
+  const { data: existingEntries, error: existingEntryError } = await supabase
     .from('entries')
-    .select('items')
+    .select('id, items')
     .eq('date', date)
-    .maybeSingle();
+    .order('id', { ascending: true });
 
   if (existingEntryError) {
     console.error(existingEntryError);
     return res.status(500).send('Database error');
   }
 
-  const posts = normalizePosts(existingEntry?.items);
+  const matchingEntries = Array.isArray(existingEntries) ? existingEntries : [];
+  const primaryEntry = matchingEntries[0];
+  const posts = normalizePosts(primaryEntry?.items);
   posts.push(items);
 
-  const { error } = await supabase.from('entries').upsert([
-    {
-      date,
-      items: posts,
-    },
-  ]);
+  let saveError = null;
 
-  if (error) {
-    console.error(error);
+  if (primaryEntry) {
+    const { error } = await supabase
+      .from('entries')
+      .update({ items: posts })
+      .eq('id', primaryEntry.id);
+
+    saveError = error;
+  } else {
+    const { error } = await supabase.from('entries').insert([
+      {
+        date,
+        items: posts,
+      },
+    ]);
+
+    saveError = error;
+  }
+
+  if (saveError) {
+    console.error(saveError);
     return res.status(500).send('Database error');
+  }
+
+  if (matchingEntries.length > 1) {
+    const duplicateIds = matchingEntries.slice(1).map((entry) => entry.id).filter(Boolean);
+
+    if (duplicateIds.length > 0) {
+      const { error } = await supabase.from('entries').delete().in('id', duplicateIds);
+
+      if (error) {
+        console.error('Duplicate entry cleanup failed:', error);
+      }
+    }
   }
 
   return res.redirect(303, '/');

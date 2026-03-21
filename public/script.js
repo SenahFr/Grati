@@ -176,24 +176,48 @@ window.addEventListener('DOMContentLoaded', () => {
     return panel;
   }
 
-  function placePanels(panels, key) {
-    const gridRect = grid.getBoundingClientRect();
-    const horizontalMargin = Math.max(24, gridRect.width * 0.04);
-    const verticalMargin = 16;
-    const maxTop = Math.max(verticalMargin, gridRect.height - 120);
+  function placePanels(panels, key, button) {
+    const overlayRect = overlayLayer.getBoundingClientRect();
+    const buttonRect = button.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const horizontalMargin = Math.max(12, Math.min(24, viewportWidth * 0.05));
+    const verticalMargin = Math.max(12, Math.min(24, viewportHeight * 0.05));
+    const gap = 12;
+    const availableWidth = Math.max(220, viewportWidth - horizontalMargin * 2);
+    const availableHeight = Math.max(180, viewportHeight - verticalMargin * 2);
+    const baseTop = Math.max(
+      window.scrollY + verticalMargin,
+      window.scrollY + Math.min(buttonRect.bottom + 12, viewportHeight - verticalMargin - 120)
+    );
+    let currentRowTop = baseTop;
+    let currentRowLeft = window.scrollX + horizontalMargin;
+    let currentRowHeight = 0;
 
     panels.forEach((panel, index) => {
       overlayLayer.appendChild(panel);
       panel.hidden = false;
 
       const panelRect = panel.getBoundingClientRect();
-      const maxLeft = Math.max(horizontalMargin, gridRect.width - panelRect.width - horizontalMargin);
-      const maxPanelTop = Math.max(verticalMargin, maxTop - Math.min(panelRect.height, 160));
-      const left = getPseudoRandom(`${key}-left-${index}`, horizontalMargin, maxLeft);
-      const top = getPseudoRandom(`${key}-top-${index}`, verticalMargin, maxPanelTop);
+      const panelWidth = Math.min(panelRect.width, availableWidth);
+      const panelHeight = Math.min(panelRect.height, availableHeight);
+      const rowEnd = window.scrollX + viewportWidth - horizontalMargin;
 
-      panel.style.left = `${left}px`;
-      panel.style.top = `${top}px`;
+      if (currentRowLeft + panelWidth > rowEnd && currentRowLeft > window.scrollX + horizontalMargin) {
+        currentRowTop += currentRowHeight + gap;
+        currentRowLeft = window.scrollX + horizontalMargin;
+        currentRowHeight = 0;
+      }
+
+      const maxTop = window.scrollY + viewportHeight - verticalMargin - panelHeight;
+      const left = Math.min(currentRowLeft, rowEnd - panelWidth);
+      const top = Math.min(currentRowTop, Math.max(window.scrollY + verticalMargin, maxTop));
+
+      panel.style.left = `${Math.max(horizontalMargin, left - overlayRect.left - window.scrollX)}px`;
+      panel.style.top = `${Math.max(verticalMargin, top - overlayRect.top - window.scrollY)}px`;
+      currentRowLeft += panelWidth + gap;
+      currentRowHeight = Math.max(currentRowHeight, panelHeight);
+
       requestAnimationFrame(() => panel.classList.add('active'));
     });
   }
@@ -212,7 +236,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     closePanels(button);
     button.setAttribute('aria-expanded', 'true');
-    placePanels(panels, key);
+    placePanels(panels, key, button);
   }
 
   function createDateLabel(display, items, key) {

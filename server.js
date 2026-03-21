@@ -41,6 +41,29 @@ function todayKey() {
 
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
+function normalizePosts(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return [];
+  }
+
+  if (items.every((item) => typeof item === 'string')) {
+    return [items.filter(Boolean)];
+  }
+
+  return items
+    .map((item) => {
+      if (Array.isArray(item)) {
+        return item.filter((entry) => typeof entry === 'string' && entry.trim());
+      }
+
+      if (item && Array.isArray(item.items)) {
+        return item.items.filter((entry) => typeof entry === 'string' && entry.trim());
+      }
+
+      return [];
+    })
+    .filter((post) => post.length > 0);
+}
 
 app.post('/entry', async (req, res) => {
   if (!req.session?.authenticated) {
@@ -57,10 +80,25 @@ app.post('/entry', async (req, res) => {
     return res.redirect(303, '/admin');
   }
 
+  const date = todayKey();
+  const { data: existingEntry, error: existingEntryError } = await supabase
+    .from('entries')
+    .select('items')
+    .eq('date', date)
+    .maybeSingle();
+
+  if (existingEntryError) {
+    console.error(existingEntryError);
+    return res.status(500).send('Database error');
+  }
+
+  const posts = normalizePosts(existingEntry?.items);
+  posts.push(items);
+
   const { error } = await supabase.from('entries').upsert([
     {
-      date: todayKey(),
-      items,
+      date,
+      items: posts,
     },
   ]);
 

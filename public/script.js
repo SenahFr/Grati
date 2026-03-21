@@ -1,29 +1,17 @@
 window.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('archive-grid');
+  const overlayLayer = document.getElementById('entry-overlay-layer');
   const hoverCard = document.getElementById('hover-image-card');
   const hoverImg = document.getElementById('hover-image');
-  const sameDaySection = document.getElementById('same-day-section');
-  const sameDayListContainer = document.getElementById('same-day-list-container');
   const archiveTimeZone = 'America/New_York';
   const archiveLength = 56;
-  const sameDayPalette = [
-    {
-      background: 'var(--prayer-card-blue)',
-      text: 'var(--bg-yellow)',
-      className: 'same-day-list--blue',
-    },
-    {
-      background: 'var(--bg-yellow)',
-      text: 'var(--primary-green)',
-      className: 'same-day-list--yellow',
-    },
-    {
-      background: 'var(--primary-green)',
-      text: 'var(--prayer-card-blue)',
-      className: 'same-day-list--green',
-    },
+  const overlayPalette = [
+    'entry-panel--yellow',
+    'entry-panel--green',
+    'entry-panel--blue',
   ];
-  if (!grid || !hoverCard || !hoverImg) {
+
+  if (!grid || !overlayLayer || !hoverCard || !hoverImg) {
     return;
   }
 
@@ -102,8 +90,32 @@ window.addEventListener('DOMContentLoaded', () => {
     }).format(date);
   }
 
+  function normalizePosts(items) {
+    if (!Array.isArray(items) || items.length === 0) {
+      return [];
+    }
+
+    if (items.every((item) => typeof item === 'string')) {
+      return [items.filter(Boolean)];
+    }
+
+    return items
+      .map((item) => {
+        if (Array.isArray(item)) {
+          return item.filter((entry) => typeof entry === 'string' && entry.trim());
+        }
+
+        if (item && Array.isArray(item.items)) {
+          return item.items.filter((entry) => typeof entry === 'string' && entry.trim());
+        }
+
+        return [];
+      })
+      .filter((post) => post.length > 0);
+  }
+
   function hasEntry(items) {
-    return Array.isArray(items) && items.length > 0;
+    return normalizePosts(items).length > 0;
   }
 
   function getLatestVisibleKey(entries) {
@@ -129,116 +141,100 @@ window.addEventListener('DOMContentLoaded', () => {
     return list;
   }
 
-  function createEntryPanel(items) {
-    const panel = document.createElement('div');
-    panel.className = 'entry-panel';
-    panel.hidden = true;
-    panel.appendChild(buildEntryList(items));
-    return panel;
+  function getStableNumber(seed) {
+    return seed.split('').reduce((sum, character, index) => {
+      return (sum * 31 + character.charCodeAt(0) + index) % 2147483647;
+    }, 7);
   }
 
-  function closePanels(exceptButton, exceptPanel) {
+  function getPseudoRandom(seed, min, max) {
+    if (max <= min) {
+      return min;
+    }
+
+    const normalized = (Math.sin(getStableNumber(seed)) + 1) / 2;
+    return min + normalized * (max - min);
+  }
+
+  function closePanels(exceptButton) {
     grid.querySelectorAll('.date-link[aria-expanded="true"]').forEach((button) => {
       if (button !== exceptButton) {
         button.setAttribute('aria-expanded', 'false');
       }
     });
 
-    grid.querySelectorAll('.entry-panel.active').forEach((panel) => {
-      if (panel !== exceptPanel) {
-        panel.hidden = true;
-        panel.classList.remove('active');
-      }
+    overlayLayer.innerHTML = '';
+  }
+
+  function createEntryPanel(items, key, index) {
+    const panel = document.createElement('div');
+    panel.className = `entry-panel ${overlayPalette[index % overlayPalette.length]}`;
+    panel.hidden = true;
+    panel.dataset.key = key;
+    panel.dataset.index = String(index);
+    panel.appendChild(buildEntryList(items));
+    return panel;
+  }
+
+  function placePanels(panels, key) {
+    const gridRect = grid.getBoundingClientRect();
+    const horizontalMargin = Math.max(24, gridRect.width * 0.04);
+    const verticalMargin = 16;
+    const maxTop = Math.max(verticalMargin, gridRect.height - 120);
+
+    panels.forEach((panel, index) => {
+      overlayLayer.appendChild(panel);
+      panel.hidden = false;
+
+      const panelRect = panel.getBoundingClientRect();
+      const maxLeft = Math.max(horizontalMargin, gridRect.width - panelRect.width - horizontalMargin);
+      const maxPanelTop = Math.max(verticalMargin, maxTop - Math.min(panelRect.height, 160));
+      const left = getPseudoRandom(`${key}-left-${index}`, horizontalMargin, maxLeft);
+      const top = getPseudoRandom(`${key}-top-${index}`, verticalMargin, maxPanelTop);
+
+      panel.style.left = `${left}px`;
+      panel.style.top = `${top}px`;
+      requestAnimationFrame(() => panel.classList.add('active'));
     });
   }
 
-  function toggleEntryPanel(button, panel) {
+  function toggleEntryPanels(button, items, key) {
     const isExpanded = button.getAttribute('aria-expanded') === 'true';
-    const nextState = !isExpanded;
 
-    closePanels(nextState ? button : null, nextState ? panel : null);
-    button.setAttribute('aria-expanded', String(nextState));
-    panel.hidden = !nextState;
-    panel.classList.toggle('active', nextState);
+    if (isExpanded) {
+      button.setAttribute('aria-expanded', 'false');
+      closePanels();
+      return;
+    }
+
+    const posts = normalizePosts(items);
+    const panels = posts.map((post, index) => createEntryPanel(post, key, index));
+
+    closePanels(button);
+    button.setAttribute('aria-expanded', 'true');
+    placePanels(panels, key);
   }
 
   function createDateLabel(display, items, key) {
     if (hasEntry(items)) {
       const button = document.createElement('button');
-      const panelId = `entry-panel-${key}`;
-      const panel = createEntryPanel(items);
 
       button.type = 'button';
       button.className = 'date-link';
       button.textContent = display;
       button.setAttribute('aria-expanded', 'false');
-      button.setAttribute('aria-controls', panelId);
-
-      panel.id = panelId;
 
       button.addEventListener('click', () => {
-        toggleEntryPanel(button, panel);
+        toggleEntryPanels(button, items, key);
       });
 
-      return [button, panel];
+      return [button];
     }
 
     const dateLabel = document.createElement('span');
     dateLabel.className = 'date-label';
     dateLabel.textContent = display;
     return [dateLabel];
-  }
-
-function getStableColorVariant(key) {
-    const checksum = key
-      .split('')
-      .reduce((sum, character) => sum + character.charCodeAt(0), 0);
-
-    return sameDayPalette[checksum % sameDayPalette.length];
-  }
-
-  function renderSameDayEntries(entries) {
-    if (!sameDaySection || !sameDayListContainer) {
-      return;
-    }
-
-    const duplicatedDays = Object.entries(entries)
-      .filter(([, items]) => Array.isArray(items) && items.length > 1)
-      .sort(([leftKey], [rightKey]) => rightKey.localeCompare(leftKey));
-
-    sameDayListContainer.innerHTML = '';
-
-    if (duplicatedDays.length === 0) {
-      sameDaySection.hidden = true;
-      return;
-    }
-
-    sameDaySection.hidden = false;
-
-    duplicatedDays.forEach(([key, items]) => {
-      const colorVariant = getStableColorVariant(key);
-      const wrapper = document.createElement('article');
-      const heading = document.createElement('h3');
-      const list = document.createElement('ul');
-
-      wrapper.className = `same-day-list ${colorVariant.className}`;
-      wrapper.style.backgroundColor = colorVariant.background;
-      wrapper.style.color = colorVariant.text;
-
-      heading.className = 'same-day-list__date';
-      heading.textContent = formatDisplayDateFromKey(key);
-
-      list.className = 'same-day-list__entries';
-
-      items.forEach((item) => {
-        const listItem = document.createElement('li');
-        listItem.textContent = item;
-        list.appendChild(listItem);
-      });
-
-      wrapper.append(heading, list);
-      sameDayListContainer.appendChild(wrapper);
-    });
   }
 
   async function renderArchive() {
@@ -257,6 +253,7 @@ function getStableColorVariant(key) {
       const latestVisibleKey = getLatestVisibleKey(entries);
 
       grid.innerHTML = '';
+      overlayLayer.innerHTML = '';
 
       for (let i = 0; i < archiveLength; i += 1) {
         const key = shiftStorageKey(latestVisibleKey, -i);
@@ -273,18 +270,18 @@ function getStableColorVariant(key) {
 
         grid.appendChild(cell);
       }
-
-      renderSameDayEntries(entries);
     } catch (error) {
       console.error('Error loading entries:', error);
     }
   }
 
   document.addEventListener('click', (event) => {
-    if (!event.target.closest('.grid-cell')) {
+    if (!event.target.closest('.grid-cell') && !event.target.closest('.entry-panel')) {
       closePanels();
     }
   });
+
+  window.addEventListener('resize', () => closePanels());
 
   renderArchive();
 });

@@ -26,6 +26,7 @@
   --bg-yellow: #f9db6d;
   --primary-green: #15e070;
   --accent-blue: #2191fb;
+  --prayer-card-blue: #2191fb;
 }
 
 * {
@@ -122,6 +123,43 @@ a:focus-visible {
 
 .grid-wrapper {
   margin: 0 100px;
+}
+
+.same-day-section {
+  margin: 0 100px 40px;
+}
+
+.same-day-heading {
+  margin: 0 0 16px;
+  font-family: 'FlorDeRuina Semilla', serif;
+  font-size: clamp(1.6rem, 2.8vw, 2.6rem);
+  color: var(--primary-green);
+}
+
+.same-day-list-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.same-day-list {
+  padding: 18px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.1);
+}
+
+.same-day-list__date {
+  margin: 0 0 10px;
+  font-family: 'FlorDeRuina Ruina', serif;
+  font-size: clamp(1.2rem, 2vw, 1.8rem);
+}
+
+.same-day-list__entries {
+  margin: 0;
+  padding-left: 1.1em;
+  font-family: 'FlorDeRuina Germen', serif;
+  font-size: 1.35rem;
+  line-height: 1.3;
 }
 
 .grid {
@@ -264,6 +302,10 @@ textarea {
     margin: 0 60px;
  }
 
+  .same-day-section {
+    margin: 0 60px 40px;
+  }
+
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -280,6 +322,10 @@ textarea {
 
   .grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+.same-day-section {
+    margin: 0 20px 32px;
   }
 
   .subhead-nav {

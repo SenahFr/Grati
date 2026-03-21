@@ -2,9 +2,27 @@ window.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('archive-grid');
   const hoverCard = document.getElementById('hover-image-card');
   const hoverImg = document.getElementById('hover-image');
+  const sameDaySection = document.getElementById('same-day-section');
+  const sameDayListContainer = document.getElementById('same-day-list-container');
   const archiveTimeZone = 'America/New_York';
   const archiveLength = 56;
-
+  const sameDayPalette = [
+    {
+      background: 'var(--prayer-card-blue)',
+      text: 'var(--bg-yellow)',
+      className: 'same-day-list--blue',
+    },
+    {
+      background: 'var(--bg-yellow)',
+      text: 'var(--primary-green)',
+      className: 'same-day-list--yellow',
+    },
+    {
+      background: 'var(--primary-green)',
+      text: 'var(--prayer-card-blue)',
+      className: 'same-day-list--green',
+    },
+  ];
   if (!grid || !hoverCard || !hoverImg) {
     return;
   }
@@ -43,7 +61,7 @@ window.addEventListener('DOMContentLoaded', () => {
     item.addEventListener('focusout', hideHoverImage);
   });
 
-function getDatePartsInTimeZone(date, timeZone) {
+  function getDatePartsInTimeZone(date, timeZone) {
     const formatter = new Intl.DateTimeFormat('en-CA', {
       timeZone,
       year: 'numeric',
@@ -171,6 +189,58 @@ function getDatePartsInTimeZone(date, timeZone) {
     return [dateLabel];
   }
 
+function getStableColorVariant(key) {
+    const checksum = key
+      .split('')
+      .reduce((sum, character) => sum + character.charCodeAt(0), 0);
+
+    return sameDayPalette[checksum % sameDayPalette.length];
+  }
+
+  function renderSameDayEntries(entries) {
+    if (!sameDaySection || !sameDayListContainer) {
+      return;
+    }
+
+    const duplicatedDays = Object.entries(entries)
+      .filter(([, items]) => Array.isArray(items) && items.length > 1)
+      .sort(([leftKey], [rightKey]) => rightKey.localeCompare(leftKey));
+
+    sameDayListContainer.innerHTML = '';
+
+    if (duplicatedDays.length === 0) {
+      sameDaySection.hidden = true;
+      return;
+    }
+
+    sameDaySection.hidden = false;
+
+    duplicatedDays.forEach(([key, items]) => {
+      const colorVariant = getStableColorVariant(key);
+      const wrapper = document.createElement('article');
+      const heading = document.createElement('h3');
+      const list = document.createElement('ul');
+
+      wrapper.className = `same-day-list ${colorVariant.className}`;
+      wrapper.style.backgroundColor = colorVariant.background;
+      wrapper.style.color = colorVariant.text;
+
+      heading.className = 'same-day-list__date';
+      heading.textContent = formatDisplayDateFromKey(key);
+
+      list.className = 'same-day-list__entries';
+
+      items.forEach((item) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = item;
+        list.appendChild(listItem);
+      });
+
+      wrapper.append(heading, list);
+      sameDayListContainer.appendChild(wrapper);
+    });
+  }
+
   async function renderArchive() {
     try {
       const response = await fetch('/entries', {
@@ -203,6 +273,8 @@ function getDatePartsInTimeZone(date, timeZone) {
 
         grid.appendChild(cell);
       }
+
+      renderSameDayEntries(entries);
     } catch (error) {
       console.error('Error loading entries:', error);
     }

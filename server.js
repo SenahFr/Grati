@@ -74,9 +74,13 @@ app.post('/entry', async (req, res) => {
 
     const text = (req.body?.text || '').trim();
 
+    if (!text) {
+      return res.redirect(303, '/admin');
+    }
+
     const items = text
       .split('\n')
-      .map(line => line.trim())
+      .map((line) => line.trim())
       .filter(Boolean);
 
     if (!items.length) {
@@ -85,7 +89,6 @@ app.post('/entry', async (req, res) => {
 
     const today = todayKey();
 
-    // 1. get existing entry
     const { data: existing, error: fetchError } = await supabase
       .from('entries')
       .select('*')
@@ -93,38 +96,38 @@ app.post('/entry', async (req, res) => {
       .maybeSingle();
 
     if (fetchError) {
-      console.error("FETCH ERROR:", fetchError);
+      console.error('FETCH ERROR:', fetchError);
       return res.status(500).send('Fetch error');
     }
 
-    // 2. merge items
-    let newItems = items;
+    let allPosts = [];
 
-    if (existing && existing.items) {
-      newItems = [...existing.items, ...items];
+    if (existing && Array.isArray(existing.items)) {
+      allPosts = existing.items;
     }
 
-    // 3. upsert
+    allPosts.push(items);
+
     const { error: upsertError } = await supabase
       .from('entries')
       .upsert(
         [
           {
             date: today,
-            items: newItems
+            items: allPosts
           }
         ],
         { onConflict: 'date' }
       );
 
     if (upsertError) {
-      console.error("UPSERT ERROR:", upsertError);
+      console.error('UPSERT ERROR:', upsertError);
       return res.status(500).send('Database error');
     }
 
     return res.redirect(303, '/');
   } catch (err) {
-    console.error("SERVER CRASH:", err);
+    console.error('SERVER ERROR:', err);
     return res.status(500).send('Server error');
   }
 });
@@ -138,13 +141,23 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/entries', async (_req, res) => {
-  const { data, error } = await supabase.from('entries').select('*');
+  const { data, error } = await supabase
+    .from('entries')
+    .select('*');
 
-  if (error) return res.status(500).json({ error });
+  if (error) {
+    console.error('GET /entries error:', error);
+    return res.status(500).json({ error });
+  }
 
   const formatted = {};
+
   data.forEach((row) => {
-    formatted[row.date] = row.items;
+    if (Array.isArray(row.items)) {
+      formatted[row.date] = row.items;
+    } else {
+      formatted[row.date] = [];
+    }
   });
 
   res.json(formatted);

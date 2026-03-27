@@ -5,11 +5,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const hoverImg = document.getElementById('hover-image');
   const archiveTimeZone = 'America/New_York';
   const archiveLength = 56;
-  const overlayPalette = [
-    'entry-panel--yellow',
-    'entry-panel--green',
-    'entry-panel--blue',
-  ];
 
   if (!grid || !overlayLayer || !hoverCard || !hoverImg) {
     return;
@@ -91,12 +86,20 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function normalizePosts(items) {
+    if (!items) {
+      return [];
+    }
+
+    if (typeof items === 'string') {
+      return [[items].filter(Boolean)];
+    }
+
     if (!Array.isArray(items) || items.length === 0) {
       return [];
     }
 
     if (items.every((item) => typeof item === 'string')) {
-      return [items.filter(Boolean)];
+      return [items.filter((item) => typeof item === 'string' && item.trim())];
     }
 
     return items
@@ -141,21 +144,6 @@ window.addEventListener('DOMContentLoaded', () => {
     return list;
   }
 
-  function getStableNumber(seed) {
-    return seed.split('').reduce((sum, character, index) => {
-      return (sum * 31 + character.charCodeAt(0) + index) % 2147483647;
-    }, 7);
-  }
-
-  function getPseudoRandom(seed, min, max) {
-    if (max <= min) {
-      return min;
-    }
-
-    const normalized = (Math.sin(getStableNumber(seed)) + 1) / 2;
-    return min + normalized * (max - min);
-  }
-
   function closePanels(exceptButton) {
     grid.querySelectorAll('.date-link[aria-expanded="true"]').forEach((button) => {
       if (button !== exceptButton) {
@@ -168,55 +156,104 @@ window.addEventListener('DOMContentLoaded', () => {
 
   function createEntryPanel(items, key, index) {
     const panel = document.createElement('div');
-    panel.className = `entry-panel ${overlayPalette[index % overlayPalette.length]}`;
+
+    let colorClass = 'entry-panel--yellow';
+
+    if (index > 0) {
+      const randomPalette = [
+        'entry-panel--yellow',
+        'entry-panel--green',
+        'entry-panel--blue',
+      ];
+      colorClass = randomPalette[Math.floor(Math.random() * randomPalette.length)];
+    }
+
+    panel.className = `entry-panel ${colorClass}`;
     panel.hidden = true;
     panel.dataset.key = key;
     panel.dataset.index = String(index);
+
+    if (colorClass === 'entry-panel--blue') {
+      panel.classList.add('entry-panel--text-yellow');
+    }
+
+    if (colorClass === 'entry-panel--green') {
+      panel.classList.add('entry-panel--text-blue');
+    }
+
     panel.appendChild(buildEntryList(items));
     return panel;
   }
 
   function placePanels(panels, key, button) {
     const overlayRect = overlayLayer.getBoundingClientRect();
-    const buttonRect = button.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const horizontalMargin = Math.max(12, Math.min(24, viewportWidth * 0.05));
-    const verticalMargin = Math.max(12, Math.min(24, viewportHeight * 0.05));
-    const gap = 12;
-    const availableWidth = Math.max(220, viewportWidth - horizontalMargin * 2);
-    const availableHeight = Math.max(180, viewportHeight - verticalMargin * 2);
-    const baseTop = Math.max(
-      window.scrollY + verticalMargin,
-      window.scrollY + Math.min(buttonRect.bottom + 12, viewportHeight - verticalMargin - 120)
-    );
-    let currentRowTop = baseTop;
-    let currentRowLeft = window.scrollX + horizontalMargin;
-    let currentRowHeight = 0;
+
+    const zones = [
+      { x: 0.22, y: 0.42 },
+      { x: 0.5, y: 0.3 },
+      { x: 0.76, y: 0.54 },
+    ];
+
+    const usedPositions = [];
+    const padding = 24;
 
     panels.forEach((panel, index) => {
       overlayLayer.appendChild(panel);
       panel.hidden = false;
 
       const panelRect = panel.getBoundingClientRect();
-      const panelWidth = Math.min(panelRect.width, availableWidth);
-      const panelHeight = Math.min(panelRect.height, availableHeight);
-      const rowEnd = window.scrollX + viewportWidth - horizontalMargin;
+      const panelWidth = panelRect.width || 300;
+      const panelHeight = panelRect.height || 180;
 
-      if (currentRowLeft + panelWidth > rowEnd && currentRowLeft > window.scrollX + horizontalMargin) {
-        currentRowTop += currentRowHeight + gap;
-        currentRowLeft = window.scrollX + horizontalMargin;
-        currentRowHeight = 0;
+      let attempts = 0;
+      let left = 0;
+      let top = 0;
+
+      while (attempts < 30) {
+        const zone =
+          index === 0
+            ? zones[0]
+            : zones[Math.floor(Math.random() * zones.length)];
+
+        const baseX = viewportWidth * zone.x;
+        const baseY = viewportHeight * zone.y;
+
+        const jitterX = (Math.random() - 0.5) * 180;
+        const jitterY = (Math.random() - 0.5) * 120;
+
+        left = baseX + jitterX;
+        top = baseY + jitterY;
+
+        left = Math.max(
+          padding,
+          Math.min(left, viewportWidth - panelWidth - padding)
+        );
+
+        top = Math.max(
+          padding,
+          Math.min(top, viewportHeight - panelHeight - padding)
+        );
+
+        const overlaps = usedPositions.some((pos) => {
+          return (
+            Math.abs(pos.left - left) < 240 &&
+            Math.abs(pos.top - top) < 150
+          );
+        });
+
+        if (!overlaps) {
+          break;
+        }
+
+        attempts += 1;
       }
 
-      const maxTop = window.scrollY + viewportHeight - verticalMargin - panelHeight;
-      const left = Math.min(currentRowLeft, rowEnd - panelWidth);
-      const top = Math.min(currentRowTop, Math.max(window.scrollY + verticalMargin, maxTop));
+      usedPositions.push({ left, top });
 
-      panel.style.left = `${Math.max(horizontalMargin, left - overlayRect.left - window.scrollX)}px`;
-      panel.style.top = `${Math.max(verticalMargin, top - overlayRect.top - window.scrollY)}px`;
-      currentRowLeft += panelWidth + gap;
-      currentRowHeight = Math.max(currentRowHeight, panelHeight);
+      panel.style.left = `${left - overlayRect.left}px`;
+      panel.style.top = `${top - overlayRect.top}px`;
 
       requestAnimationFrame(() => panel.classList.add('active'));
     });
@@ -261,102 +298,40 @@ window.addEventListener('DOMContentLoaded', () => {
     return [dateLabel];
   }
 
-async function renderArchive() {
-  const res = await fetch('/entries');
-  const entries = await res.json();
+  async function renderArchive() {
+    try {
+      const res = await fetch('/entries');
 
-  renderEntries(entries);
-}
-function renderEntries(entries) {
-  let isFirstCard = true;
-  document.querySelectorAll('.entry-card').forEach(el => el.remove());
-
-  const positions = [];
-
-  Object.keys(entries).forEach(date => {
-    (entries[date] || []).forEach((entryList, index) => {
-  if (!Array.isArray(entryList)) return;
-
-      const card = document.createElement('div');
-      card.classList.add('entry-card');
-
-      // 🎨 COLOR SYSTEM
-      let color;
-      const colors = ['yellow', 'green', 'blue'];
-
-      if (isFirstCard) {
-  color = 'yellow';
-  isFirstCard = false;
-} else {
-  color = colors[Math.floor(Math.random() * colors.length)];
-}
-
-      card.classList.add(color);
-      card.style.transform = 'translate(-50%, -50%)';
-
-      if (color === 'blue') card.classList.add('text-yellow');
-      if (color === 'green') card.classList.add('text-blue');
-
-      // 🧱 GRID ZONES
-      const zones = [
-        { x: 0.2, y: 0.4 },
-        { x: 0.5, y: 0.3 },
-        { x: 0.75, y: 0.5 }
-      ];
-
-      const zone = zones[Math.floor(Math.random() * zones.length)];
-
-      const cardWidth = 300;
-      const cardHeight = 180;
-
-      const baseX = window.innerWidth * zone.x;
-      const baseY = window.innerHeight * zone.y;
-
-      const jitterX = (Math.random() - 0.5) * 200;
-      const jitterY = (Math.random() - 0.5) * 150;
-
-      let x = baseX + jitterX;
-      let y = baseY + jitterY;
-
-      const padding = 40;
-
-      x = Math.max(padding, Math.min(x, window.innerWidth - cardWidth - padding));
-      y = Math.max(padding, Math.min(y, window.innerHeight - cardHeight - padding));
-
-      let attempts = 0;
-
-      function overlaps(x, y) {
-        return positions.some(pos => {
-          return (
-            Math.abs(pos.x - x) < 260 &&
-            Math.abs(pos.y - y) < 160
-          );
-        });
+      if (!res.ok) {
+        throw new Error(`Failed to load entries: ${res.status}`);
       }
 
-      while (overlaps(x, y) && attempts < 20) {
-        x += (Math.random() - 0.5) * 100;
-        y += (Math.random() - 0.5) * 80;
-        attempts++;
+      const entries = await res.json();
+
+      grid.innerHTML = '';
+      closePanels();
+
+      const latestVisibleKey = getLatestVisibleKey(entries);
+
+      for (let index = 0; index < archiveLength; index += 1) {
+        const key = shiftStorageKey(latestVisibleKey, -index);
+        const display = formatDisplayDateFromKey(key);
+        const cell = document.createElement('div');
+        cell.className = 'archive-cell';
+
+        const dateElements = createDateLabel(display, entries[key], key);
+        dateElements.forEach((element) => cell.appendChild(element));
+
+        grid.appendChild(cell);
       }
+    } catch (error) {
+      console.error('renderArchive error:', error);
+    }
+  }
 
-      positions.push({ x, y });
+  renderArchive();
 
-      card.style.position = 'absolute';
-      card.style.left = `${x}px`;
-      card.style.top = `${y}px`;
-
-      const ul = document.createElement('ul');
-
-      entryList.forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = item;
-        ul.appendChild(li);
-      });
-
-      card.appendChild(ul);
-      document.body.appendChild(card);
-    });
+  window.addEventListener('resize', () => {
+    closePanels();
   });
-}
 });

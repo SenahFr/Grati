@@ -161,35 +161,7 @@ a:focus-visible {
   pointer-events: none;
 }
 
-.entry-card {
-  width: 300px;
-  padding: 20px;
-  position: absolute;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-}
-
-/* COLORS */
-
-.yellow {
-  background: #f5d96b;
-  color: #2f5cff;
-}
-
-.green {
-  background: #00c26e;
-}
-
-.green.text-blue {
-  color: #2f5cff;
-}
-
-.blue {
-  background: #2f5cff; /* match prayer card */
-}
-
-.blue.text-yellow {
-  color: #f5d96b;
-}
+/* ENTRY PANELS */
 
 .entry-panel {
   position: absolute;
@@ -231,6 +203,14 @@ a:focus-visible {
   color: rgba(249, 219, 109, 0.95);
 }
 
+.entry-panel--text-yellow {
+  color: var(--bg-yellow);
+}
+
+.entry-panel--text-blue {
+  color: var(--prayer-card-blue);
+}
+
 .entry-list {
   margin: 0;
   padding-left: 0.65em;
@@ -245,6 +225,8 @@ a:focus-visible {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* ADMIN */
 
 .admin-page {
   max-width: 900px;
@@ -308,6 +290,8 @@ textarea {
   align-items: center;
   gap: 12px;
 }
+
+/* RESPONSIVE */
 
 @media (max-width: 1024px) {
   .grid-wrapper {

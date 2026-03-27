@@ -89,6 +89,9 @@ a {
   text-align: left;
   font-family: 'FlorDeRuina Ruina', serif;
   font-size: clamp(1.2rem, 1.8vw, 2rem);
+  line-height: 1.05;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .date-label {
@@ -132,13 +135,16 @@ a:focus-visible {
 .grid-wrapper {
   position: relative;
   margin: 0 100px;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
   gap: 20px;
   align-items: start;
+  min-width: 900px;
 }
 
 .grid-cell {
@@ -160,8 +166,6 @@ a:focus-visible {
   z-index: 20;
   pointer-events: none;
 }
-
-/* ENTRY PANELS */
 
 .entry-panel {
   position: absolute;
@@ -226,8 +230,6 @@ a:focus-visible {
   overflow-wrap: anywhere;
 }
 
-/* ADMIN */
-
 .admin-page {
   max-width: 900px;
   padding: 24px 20px 80px;
@@ -291,15 +293,14 @@ textarea {
   gap: 12px;
 }
 
-/* RESPONSIVE */
-
 @media (max-width: 1024px) {
   .grid-wrapper {
-    margin: 0 60px;
+    margin: 0 40px;
   }
 
   .grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-width: 840px;
+    gap: 16px;
   }
 
   .grid-cell {
@@ -308,20 +309,44 @@ textarea {
 }
 
 @media (max-width: 700px) {
+  .page {
+    padding: 18px 0 40px;
+  }
+
   .grid-wrapper {
-    margin: 0 20px;
+    margin: 0 16px;
   }
 
   .subhead-nav {
     gap: 24px;
     flex-wrap: wrap;
+    margin-bottom: 34px;
   }
 
   .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(110px, 1fr));
+    min-width: 770px;
+    gap: 14px;
+  }
+
+  .grid-cell {
+    min-height: 84px;
+    padding-top: 4px;
+  }
+
+  .date-link,
+  .date-label {
+    font-size: 1.65rem;
+    line-height: 1.02;
   }
 
   .entry-panel {
-    width: min(320px, calc(100vw - 48px));
+    width: min(320px, calc(100vw - 32px));
+    max-height: none;
+  }
+
+  .entry-list {
+    font-size: 1.45rem;
+    line-height: 1.25;
   }
 }

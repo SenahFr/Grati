@@ -180,112 +180,115 @@ window.addEventListener('DOMContentLoaded', () => {
     return panel;
   }
 
-  function placePanels(panels, key, button) {
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const isMobile = viewportWidth <= 700;
+ function placePanels(panels, key, button) {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const isMobile = viewportWidth <= 700;
 
-    overlayLayer.innerHTML = '';
+  overlayLayer.innerHTML = '';
 
-    if (isMobile) {
-      const padding = 16;
-      const gap = 14;
-      let currentTop = 92;
+  if (isMobile) {
+    const padding = 16;
+    const gap = 14;
 
-      panels.forEach((panel, index) => {
-        overlayLayer.appendChild(panel);
-        panel.hidden = false;
-        panel.style.position = 'fixed';
-
-        const panelWidth = Math.min(320, viewportWidth - padding * 2);
-        const stagger = index % 2 === 0 ? -8 : 8;
-
-        panel.style.width = `${panelWidth}px`;
-        panel.style.left = `${Math.max(padding, (viewportWidth - panelWidth) / 2 + stagger)}px`;
-        panel.style.top = `${currentTop}px`;
-
-        const panelRect = panel.getBoundingClientRect();
-        currentTop += panelRect.height + gap;
-
-        requestAnimationFrame(() => panel.classList.add('active'));
-      });
-
-      return;
-    }
-
-    const buttonRect = button.getBoundingClientRect();
-    const zones = [
-      { x: 0.22, y: 0.42 },
-      { x: 0.5, y: 0.3 },
-      { x: 0.76, y: 0.54 },
-    ];
-
-    const usedPositions = [];
-    const padding = 24;
+    // Safe zone below title + prayer links
+    const safeTop = 220;
+    let currentTop = safeTop;
 
     panels.forEach((panel, index) => {
       overlayLayer.appendChild(panel);
       panel.hidden = false;
       panel.style.position = 'fixed';
 
+      const panelWidth = Math.min(320, viewportWidth - padding * 2);
+      const stagger = index % 2 === 0 ? -6 : 6;
+
+      panel.style.width = `${panelWidth}px`;
+      panel.style.left = `${Math.max(padding, (viewportWidth - panelWidth) / 2 + stagger)}px`;
+      panel.style.top = `${currentTop}px`;
+
       const panelRect = panel.getBoundingClientRect();
-      const panelWidth = panelRect.width || 300;
-      const panelHeight = panelRect.height || 180;
-
-      let attempts = 0;
-      let left = 0;
-      let top = 0;
-
-      while (attempts < 30) {
-        if (index === 0) {
-          left = Math.min(
-            Math.max(padding, buttonRect.left + 24),
-            viewportWidth - panelWidth - padding
-          );
-          top = Math.min(
-            Math.max(padding, buttonRect.bottom + 12),
-            viewportHeight - panelHeight - padding
-          );
-        } else {
-          const zone = zones[Math.floor(Math.random() * zones.length)];
-          const baseX = viewportWidth * zone.x;
-          const baseY = viewportHeight * zone.y;
-          const jitterX = (Math.random() - 0.5) * 180;
-          const jitterY = (Math.random() - 0.5) * 120;
-
-          left = baseX + jitterX;
-          top = baseY + jitterY;
-
-          left = Math.max(
-            padding,
-            Math.min(left, viewportWidth - panelWidth - padding)
-          );
-
-          top = Math.max(
-            padding,
-            Math.min(top, viewportHeight - panelHeight - padding)
-          );
-        }
-
-        const overlaps = usedPositions.some((pos) => {
-          return (
-            Math.abs(pos.left - left) < 240 &&
-            Math.abs(pos.top - top) < 150
-          );
-        });
-
-        if (!overlaps) break;
-        attempts += 1;
-      }
-
-      usedPositions.push({ left, top });
-
-      panel.style.left = `${left}px`;
-      panel.style.top = `${top}px`;
+      currentTop += panelRect.height + gap;
 
       requestAnimationFrame(() => panel.classList.add('active'));
     });
+
+    return;
   }
+
+  const buttonRect = button.getBoundingClientRect();
+  const zones = [
+    { x: 0.22, y: 0.42 },
+    { x: 0.5, y: 0.3 },
+    { x: 0.76, y: 0.54 },
+  ];
+
+  const usedPositions = [];
+  const padding = 24;
+
+  panels.forEach((panel, index) => {
+    overlayLayer.appendChild(panel);
+    panel.hidden = false;
+    panel.style.position = 'fixed';
+
+    const panelRect = panel.getBoundingClientRect();
+    const panelWidth = panelRect.width || 300;
+    const panelHeight = panelRect.height || 180;
+
+    let attempts = 0;
+    let left = 0;
+    let top = 0;
+
+    while (attempts < 30) {
+      if (index === 0) {
+        left = Math.min(
+          Math.max(padding, buttonRect.left + 24),
+          viewportWidth - panelWidth - padding
+        );
+        top = Math.min(
+          Math.max(140, buttonRect.bottom + 12),
+          viewportHeight - panelHeight - padding
+        );
+      } else {
+        const zone = zones[Math.floor(Math.random() * zones.length)];
+        const baseX = viewportWidth * zone.x;
+        const baseY = viewportHeight * zone.y;
+        const jitterX = (Math.random() - 0.5) * 180;
+        const jitterY = (Math.random() - 0.5) * 120;
+
+        left = baseX + jitterX;
+        top = baseY + jitterY;
+
+        left = Math.max(
+          padding,
+          Math.min(left, viewportWidth - panelWidth - padding)
+        );
+
+        top = Math.max(
+          140,
+          Math.min(top, viewportHeight - panelHeight - padding)
+        );
+      }
+
+      const overlaps = usedPositions.some((pos) => {
+        return (
+          Math.abs(pos.left - left) < 240 &&
+          Math.abs(pos.top - top) < 150
+        );
+      });
+
+      if (!overlaps) break;
+      attempts += 1;
+    }
+
+    usedPositions.push({ left, top });
+
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+
+    requestAnimationFrame(() => panel.classList.add('active'));
+  });
+}
 
   function toggleEntryPanels(button, items, key) {
     const isExpanded = button.getAttribute('aria-expanded') === 'true';

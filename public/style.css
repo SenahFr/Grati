@@ -135,16 +135,13 @@ a:focus-visible {
 .grid-wrapper {
   position: relative;
   margin: 0 100px;
-  overflow-x: auto;
-  overflow-y: visible;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 20px;
   align-items: start;
-  min-width: 900px;
 }
 
 .grid-cell {
@@ -299,7 +296,7 @@ textarea {
   }
 
   .grid {
-    min-width: 840px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
   }
 
@@ -324,9 +321,8 @@ textarea {
   }
 
   .grid {
-    grid-template-columns: repeat(7, minmax(110px, 1fr));
-    min-width: 770px;
-    gap: 14px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 22px;
   }
 
   .grid-cell {
@@ -342,7 +338,7 @@ textarea {
 
   .entry-panel {
     width: min(320px, calc(100vw - 32px));
-    max-height: none;
+    max-height: min(56vh, 420px);
   }
 
   .entry-list {

@@ -37,12 +37,24 @@ window.addEventListener('DOMContentLoaded', () => {
     hoverCard.style.display = 'none';
   }
 
-  document.querySelectorAll('.nav-item').forEach((item) => {
-    item.addEventListener('mouseenter', () => showHoverImage(item));
-    item.addEventListener('focusin', () => showHoverImage(item));
-    item.addEventListener('mouseleave', hideHoverImage);
-    item.addEventListener('focusout', hideHoverImage);
+document.querySelectorAll('.nav-item').forEach((item) => {
+  const handlePrayerCardOpen = () => {
+    if (window.innerWidth <= 700) {
+      closePanels();
+    }
+    showHoverImage(item);
+  };
+
+  item.addEventListener('mouseenter', handlePrayerCardOpen);
+  item.addEventListener('focusin', handlePrayerCardOpen);
+  item.addEventListener('touchstart', handlePrayerCardOpen, { passive: true });
+
+  item.addEventListener('mouseleave', hideHoverImage);
+  item.addEventListener('focusout', hideHoverImage);
+  item.addEventListener('touchend', () => {
+    // keep visible briefly on touch if needed; remove if you want it to disappear instantly
   });
+});
 
   function getDatePartsInTimeZone(date, timeZone) {
     const formatter = new Intl.DateTimeFormat('en-CA', {

@@ -67,73 +67,66 @@ function normalizePosts(items) {
 }
 
 app.post('/entry', async (req, res) => {
-  if (!req.session?.authenticated) {
-    return res.status(401).send('Unauthorized');
-  }
-
-  const text = (req.body?.text || '').trim();
-  const items = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (!items.length) {
-    return res.redirect(303, '/admin');
-  }
-  const { data: existingEntries, error: existingEntryError } = await supabase
-    .from('entries')
-    .select('id, items')
-    .eq('date', date)
-    .order('id', { ascending: true });
-
-  if (existingEntryError) {
-    console.error(existingEntryError);
-    return res.status(500).send('Database error');
-  }
-
-  const matchingEntries = Array.isArray(existingEntries) ? existingEntries : [];
-  const primaryEntry = matchingEntries[0];
-  const posts = normalizePosts(primaryEntry?.items);
-  posts.push(items);
-
-  let saveError = null;
-
-  if (primaryEntry) {
-    const { error } = await supabase
-      .from('entries')
-      .update({ items: posts })
-      .eq('id', primaryEntry.id);
-
-    saveError = error;
-  } else {
-    const { error } = await supabase.from('entries').insert([
-      {
-        date,
-        items: posts,
-      },
-    ]);
-
-    saveError = error;
-  }
-
-  if (saveError) {
-    console.error(saveError);
-    return res.status(500).send('Database error');
-  }
-
-  if (matchingEntries.length > 1) {
-    const duplicateIds = matchingEntries.slice(1).map((entry) => entry.id).filter(Boolean);
-
-    if (duplicateIds.length > 0) {
-      const { error } = await supabase.from('entries').delete().in('id', duplicateIds);
-
-      if (error) {
-        console.error('Duplicate entry cleanup failed:', error);
-      }
+  try {
+    if (!req.session?.authenticated) {
+      return res.status(401).send('Unauthorized');
     }
-  }
 
-  return res.redirect(303, '/');
+    const text = (req.body?.text || '').trim();
+
+    const items = text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    if (!items.length) {
+      return res.redirect(303, '/admin');
+    }
+
+    const today = todayKey();
+
+    // 1. get existing entry
+    const { data: existing, error: fetchError } = await supabase
+      .from('entries')
+      .select('*')
+      .eq('date', today)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("FETCH ERROR:", fetchError);
+      return res.status(500).send('Fetch error');
+    }
+
+    // 2. merge items
+    let newItems = items;
+
+    if (existing && existing.items) {
+      newItems = [...existing.items, ...items];
+    }
+
+    // 3. upsert
+    const { error: upsertError } = await supabase
+      .from('entries')
+      .upsert(
+        [
+          {
+            date: today,
+            items: newItems
+          }
+        ],
+        { onConflict: 'date' }
+      );
+
+    if (upsertError) {
+      console.error("UPSERT ERROR:", upsertError);
+      return res.status(500).send('Database error');
+    }
+
+    return res.redirect(303, '/');
+  } catch (err) {
+    console.error("SERVER CRASH:", err);
+    return res.status(500).send('Server error');
+  }
 });
 
 app.use('/fonts', express.static(path.join(__dirname, 'fonts')));

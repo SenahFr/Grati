@@ -261,51 +261,102 @@ window.addEventListener('DOMContentLoaded', () => {
     return [dateLabel];
   }
 
-  async function renderArchive() {
-    try {
-      const response = await fetch('/entries', {
-        headers: {
-          Accept: 'application/json',
-        },
+async function renderArchive() {
+  const res = await fetch('/entries');
+  const entries = await res.json();
+
+  renderEntries(entries);
+}
+function renderEntries(entries) {
+  let isFirstCard = true;
+  document.querySelectorAll('.entry-card').forEach(el => el.remove());
+
+  const positions = [];
+
+  Object.keys(entries).forEach(date => {
+    (entries[date] || []).forEach((entryList, index) => {
+  if (!Array.isArray(entryList)) return;
+
+      const card = document.createElement('div');
+      card.classList.add('entry-card');
+
+      // 🎨 COLOR SYSTEM
+      let color;
+      const colors = ['yellow', 'green', 'blue'];
+
+      if (isFirstCard) {
+  color = 'yellow';
+  isFirstCard = false;
+} else {
+  color = colors[Math.floor(Math.random() * colors.length)];
+}
+
+      card.classList.add(color);
+      card.style.transform = 'translate(-50%, -50%)';
+
+      if (color === 'blue') card.classList.add('text-yellow');
+      if (color === 'green') card.classList.add('text-blue');
+
+      // 🧱 GRID ZONES
+      const zones = [
+        { x: 0.2, y: 0.4 },
+        { x: 0.5, y: 0.3 },
+        { x: 0.75, y: 0.5 }
+      ];
+
+      const zone = zones[Math.floor(Math.random() * zones.length)];
+
+      const cardWidth = 300;
+      const cardHeight = 180;
+
+      const baseX = window.innerWidth * zone.x;
+      const baseY = window.innerHeight * zone.y;
+
+      const jitterX = (Math.random() - 0.5) * 200;
+      const jitterY = (Math.random() - 0.5) * 150;
+
+      let x = baseX + jitterX;
+      let y = baseY + jitterY;
+
+      const padding = 40;
+
+      x = Math.max(padding, Math.min(x, window.innerWidth - cardWidth - padding));
+      y = Math.max(padding, Math.min(y, window.innerHeight - cardHeight - padding));
+
+      let attempts = 0;
+
+      function overlaps(x, y) {
+        return positions.some(pos => {
+          return (
+            Math.abs(pos.x - x) < 260 &&
+            Math.abs(pos.y - y) < 160
+          );
+        });
+      }
+
+      while (overlaps(x, y) && attempts < 20) {
+        x += (Math.random() - 0.5) * 100;
+        y += (Math.random() - 0.5) * 80;
+        attempts++;
+      }
+
+      positions.push({ x, y });
+
+      card.style.position = 'absolute';
+      card.style.left = `${x}px`;
+      card.style.top = `${y}px`;
+
+      const ul = document.createElement('ul');
+
+      entryList.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        ul.appendChild(li);
       });
 
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
-      }
-
-      const entries = await response.json();
-      const latestVisibleKey = getLatestVisibleKey(entries);
-
-      grid.innerHTML = '';
-      overlayLayer.innerHTML = '';
-
-      for (let i = 0; i < archiveLength; i += 1) {
-        const key = shiftStorageKey(latestVisibleKey, -i);
-        const items = entries[key];
-        const display = formatDisplayDateFromKey(key);
-        const cell = document.createElement('div');
-
-        cell.className = 'grid-cell';
-        cell.append(...createDateLabel(display, items, key));
-
-        if (!hasEntry(items)) {
-          cell.classList.add('empty');
-        }
-
-        grid.appendChild(cell);
-      }
-    } catch (error) {
-      console.error('Error loading entries:', error);
-    }
-  }
-
-  document.addEventListener('click', (event) => {
-    if (!event.target.closest('.grid-cell') && !event.target.closest('.entry-panel')) {
-      closePanels();
-    }
+      card.appendChild(ul);
+      document.body.appendChild(card);
+    });
   });
-
-  window.addEventListener('resize', () => closePanels());
-
-  renderArchive();
+}
 });

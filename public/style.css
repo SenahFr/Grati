@@ -159,23 +159,36 @@ a:focus-visible {
   inset: 0;
   z-index: 20;
   pointer-events: none;
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-overflow: clip;
-=======
-  overflow: clip;
->>>>>>> theirs
-=======
-  overflow: clip;
->>>>>>> theirs
-=======
-  overflow: clip;
->>>>>>> theirs
-=======
-  overflow: clip;
->>>>>>> theirs
+}
+
+.entry-card {
+  width: 300px;
+  padding: 20px;
+  position: absolute;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+/* COLORS */
+
+.yellow {
+  background: #f5d96b;
+  color: #2f5cff;
+}
+
+.green {
+  background: #00c26e;
+}
+
+.green.text-blue {
+  color: #2f5cff;
+}
+
+.blue {
+  background: #2f5cff; /* match prayer card */
+}
+
+.blue.text-yellow {
+  color: #f5d96b;
 }
 
 .entry-panel {

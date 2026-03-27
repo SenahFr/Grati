@@ -79,8 +79,6 @@ app.post('/entry', async (req, res) => {
   if (!items.length) {
     return res.redirect(303, '/admin');
   }
-
-   const date = todayKey();
   const { data: existingEntries, error: existingEntryError } = await supabase
     .from('entries')
     .select('id, items')

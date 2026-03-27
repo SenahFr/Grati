@@ -159,7 +159,23 @@ a:focus-visible {
   inset: 0;
   z-index: 20;
   pointer-events: none;
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
+<<<<<<< ours
 overflow: clip;
+=======
+  overflow: clip;
+>>>>>>> theirs
+=======
+  overflow: clip;
+>>>>>>> theirs
+=======
+  overflow: clip;
+>>>>>>> theirs
+=======
+  overflow: clip;
+>>>>>>> theirs
 }
 
 .entry-panel {

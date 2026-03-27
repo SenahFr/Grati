@@ -161,15 +161,15 @@ a:focus-visible {
 }
 
 .entry-overlay-layer {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 20;
+  z-index: 40;
   pointer-events: none;
 }
 
 .entry-panel {
-  position: absolute;
-  z-index: 20;
+  position: fixed;
+  z-index: 40;
   width: min(420px, calc(100vw - 72px));
   max-width: calc(100vw - 24px);
   max-height: min(320px, calc(100vh - 48px));

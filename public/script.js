@@ -66,9 +66,7 @@ window.addEventListener('DOMContentLoaded', () => {
   function shiftStorageKey(key, offsetDays) {
     const [year, month, day] = key.split('-').map(Number);
     const shiftedDate = new Date(Date.UTC(year, month - 1, day, 12));
-
     shiftedDate.setUTCDate(shiftedDate.getUTCDate() + offsetDays);
-
     return shiftedDate.toISOString().slice(0, 10);
   }
 
@@ -86,9 +84,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function normalizePosts(items) {
-    if (!items) {
-      return [];
-    }
+    if (!items) return [];
 
     if (typeof items === 'string') {
       return [[items].filter(Boolean)];
@@ -158,7 +154,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const panel = document.createElement('div');
 
     let colorClass = 'entry-panel--yellow';
-
     if (index > 0) {
       const randomPalette = [
         'entry-panel--yellow',
@@ -185,102 +180,112 @@ window.addEventListener('DOMContentLoaded', () => {
     return panel;
   }
 
- function placePanels(panels, key, button) {
-  const overlayRect = overlayLayer.getBoundingClientRect();
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  const isMobile = viewportWidth <= 700;
+  function placePanels(panels, key, button) {
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const isMobile = viewportWidth <= 700;
 
-  // MOBILE: clean stacked layout, no collisions
-  if (isMobile) {
-    const padding = 16;
-    const gap = 14;
-    let currentTop = padding;
+    overlayLayer.innerHTML = '';
 
-    panels.forEach((panel) => {
+    if (isMobile) {
+      const padding = 16;
+      const gap = 14;
+      let currentTop = 92;
+
+      panels.forEach((panel, index) => {
+        overlayLayer.appendChild(panel);
+        panel.hidden = false;
+        panel.style.position = 'fixed';
+
+        const panelWidth = Math.min(320, viewportWidth - padding * 2);
+        const stagger = index % 2 === 0 ? -8 : 8;
+
+        panel.style.width = `${panelWidth}px`;
+        panel.style.left = `${Math.max(padding, (viewportWidth - panelWidth) / 2 + stagger)}px`;
+        panel.style.top = `${currentTop}px`;
+
+        const panelRect = panel.getBoundingClientRect();
+        currentTop += panelRect.height + gap;
+
+        requestAnimationFrame(() => panel.classList.add('active'));
+      });
+
+      return;
+    }
+
+    const buttonRect = button.getBoundingClientRect();
+    const zones = [
+      { x: 0.22, y: 0.42 },
+      { x: 0.5, y: 0.3 },
+      { x: 0.76, y: 0.54 },
+    ];
+
+    const usedPositions = [];
+    const padding = 24;
+
+    panels.forEach((panel, index) => {
       overlayLayer.appendChild(panel);
       panel.hidden = false;
-
-      const panelWidth = Math.min(320, viewportWidth - padding * 2);
-      panel.style.width = `${panelWidth}px`;
-      panel.style.left = `${(viewportWidth - panelWidth) / 2 - overlayRect.left}px`;
-      panel.style.top = `${currentTop - overlayRect.top}px`;
+      panel.style.position = 'fixed';
 
       const panelRect = panel.getBoundingClientRect();
-      currentTop += panelRect.height + gap;
+      const panelWidth = panelRect.width || 300;
+      const panelHeight = panelRect.height || 180;
+
+      let attempts = 0;
+      let left = 0;
+      let top = 0;
+
+      while (attempts < 30) {
+        if (index === 0) {
+          left = Math.min(
+            Math.max(padding, buttonRect.left + 24),
+            viewportWidth - panelWidth - padding
+          );
+          top = Math.min(
+            Math.max(padding, buttonRect.bottom + 12),
+            viewportHeight - panelHeight - padding
+          );
+        } else {
+          const zone = zones[Math.floor(Math.random() * zones.length)];
+          const baseX = viewportWidth * zone.x;
+          const baseY = viewportHeight * zone.y;
+          const jitterX = (Math.random() - 0.5) * 180;
+          const jitterY = (Math.random() - 0.5) * 120;
+
+          left = baseX + jitterX;
+          top = baseY + jitterY;
+
+          left = Math.max(
+            padding,
+            Math.min(left, viewportWidth - panelWidth - padding)
+          );
+
+          top = Math.max(
+            padding,
+            Math.min(top, viewportHeight - panelHeight - padding)
+          );
+        }
+
+        const overlaps = usedPositions.some((pos) => {
+          return (
+            Math.abs(pos.left - left) < 240 &&
+            Math.abs(pos.top - top) < 150
+          );
+        });
+
+        if (!overlaps) break;
+        attempts += 1;
+      }
+
+      usedPositions.push({ left, top });
+
+      panel.style.left = `${left}px`;
+      panel.style.top = `${top}px`;
 
       requestAnimationFrame(() => panel.classList.add('active'));
     });
-
-    return;
   }
-
-  // DESKTOP: designed-random placement
-  const zones = [
-    { x: 0.22, y: 0.42 },
-    { x: 0.5, y: 0.3 },
-    { x: 0.76, y: 0.54 },
-  ];
-
-  const usedPositions = [];
-  const padding = 24;
-
-  panels.forEach((panel, index) => {
-    overlayLayer.appendChild(panel);
-    panel.hidden = false;
-
-    const panelRect = panel.getBoundingClientRect();
-    const panelWidth = panelRect.width || 300;
-    const panelHeight = panelRect.height || 180;
-
-    let attempts = 0;
-    let left = 0;
-    let top = 0;
-
-    while (attempts < 30) {
-      const zone =
-        index === 0
-          ? zones[0]
-          : zones[Math.floor(Math.random() * zones.length)];
-
-      const baseX = viewportWidth * zone.x;
-      const baseY = viewportHeight * zone.y;
-
-      const jitterX = (Math.random() - 0.5) * 180;
-      const jitterY = (Math.random() - 0.5) * 120;
-
-      left = baseX + jitterX;
-      top = baseY + jitterY;
-
-      left = Math.max(
-        padding,
-        Math.min(left, viewportWidth - panelWidth - padding)
-      );
-
-      top = Math.max(
-        padding,
-        Math.min(top, viewportHeight - panelHeight - padding)
-      );
-
-      const overlaps = usedPositions.some((pos) => {
-        return (
-          Math.abs(pos.left - left) < 240 &&
-          Math.abs(pos.top - top) < 150
-        );
-      });
-
-      if (!overlaps) break;
-      attempts += 1;
-    }
-
-    usedPositions.push({ left, top });
-
-    panel.style.left = `${left - overlayRect.left}px`;
-    panel.style.top = `${top - overlayRect.top}px`;
-
-    requestAnimationFrame(() => panel.classList.add('active'));
-  });
-}
 
   function toggleEntryPanels(button, items, key) {
     const isExpanded = button.getAttribute('aria-expanded') === 'true';
@@ -302,7 +307,6 @@ window.addEventListener('DOMContentLoaded', () => {
   function createDateLabel(display, items, key) {
     if (hasEntry(items)) {
       const button = document.createElement('button');
-
       button.type = 'button';
       button.className = 'date-link';
       button.textContent = display;
@@ -340,7 +344,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const key = shiftStorageKey(latestVisibleKey, -index);
         const display = formatDisplayDateFromKey(key);
         const cell = document.createElement('div');
-        cell.className = 'archive-cell';
+        cell.className = 'grid-cell';
 
         const dateElements = createDateLabel(display, entries[key], key);
         dateElements.forEach((element) => cell.appendChild(element));
